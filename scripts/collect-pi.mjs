@@ -199,9 +199,158 @@ for (const entry of readdirSync(piWebNodeModules, { withFileTypes: true })) {
 }
 console.log(`${LOG} node_modules：复制 ${copied} 个顶层包，跳过 ${skipped} 个（devDependency / 非运行期依赖）`);
 
-// 顶层 package.json 仍是 pi-web 的（Next 读它解析版本与依赖），node_modules 已裁剪：
+/**
+ * ⚠️ 裁剪规则按**包名**判断，不靠路径子串。
+ *
+ * 为什么改：初版按「路径里含 arm64/linux-arm64/ohos 才保留」判断，会把
+ * `next/next-swc-fallback/@next/swc-win32-x64-msvc/…` 一并删掉。实测两次后果：
+ *   1. 删掉它之后 `next start` 首次运行会打印
+ *      `Downloading swc package @next/swc-win32-x64-msvc... `，从 registry 拉 34 MB 到
+ *      `%LOCALAPPDATA%\next-swc`，就绪时间从 **1.5 s 变成 5.8 s**。
+ *   2. 目标设备**离线**（`PI_OFFLINE=1`，且设备无 npm），这条下载会失败或长时间超时。
+ *
+ * 例外：`@earendil-works/pi-tui` 的原生件是**平台专用**的（darwin / linux-x11 / win32），
+ * 设备侧永远用不到，可以安全删掉，省下无谓体积。
+ */
+const PRUNE_KEEP_PACKAGES = new Set(['@next/swc-win32-x64-msvc']);
+let prunedNative = 0;
+let prunedNativeBytes = 0;
+
+function pruneNativeTree(dir) {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      pruneNativeTree(full);
+      if (existsSync(full) && readdirSync(full).length === 0) rmSync(full, { recursive: true, force: true });
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    if (!/\.node$/i.test(entry.name)) continue;
+    // 包名 = 目标树里的首个路径段（scoped 时为 `@scope/name` 两段）
+    const rel = full.slice(destNodeModules.length + 1).replaceAll('\\', '/');
+    const segs = rel.split('/');
+    const pkgName = segs[0].startsWith('@') ? `${segs[0]}/${segs[1]}` : segs[0];
+    if (PRUNE_KEEP_PACKAGES.has(pkgName)) continue;
+    let size = 0;
+    try { size = statSync(full).size; } catch { /* 不可读则记 0 */ }
+    try {
+      rmSync(full, { force: true });
+      prunedNative += 1;
+      prunedNativeBytes += size;
+      console.log(`${LOG}   裁剪 node_modules/${rel}  (${(size / 1024).toFixed(1)} KB)`);
+    } catch (err) {
+      warn(`裁剪失败 ${full}: ${err.message}`);
+    }
+  }
+}
+
+pruneNativeTree(destNodeModules);
+console.log(`${LOG} 副本内裁剪平台专用原生件：${prunedNative} 项，合计 ${(prunedNativeBytes / 1024 / 1024).toFixed(2)} MB`);
+
+/**
+ * SWC 的 aarch64-ohos 缺口（⬜ 设备侧待验证，工程规划 §11.1）。
+ *
+ * Next 在运行期用 SWC 编译 `next.config.ts`（本工程实测：没有可用 SWC 时会走 fallback 并
+ * 试图联网补下载）。npm 上 `@next/swc` 只有两种 linux-arm64 变体：
+ *   - `@next/swc-linux-arm64-musl`  ← **ohos 是 musl，优先试它**
+ *   - `@next/swc-linux-arm64-gnu`
+ * **没有 `@next/swc-linux-arm64-ohos`**（已核对 registry）。
+ *
+/**
+ * SWC 的 aarch64-ohos 缺口 —— 用**WASM 版 SWC** 彻底解决（✅ 已实测）。
+ *
+ * 背景：Next 在运行期用 SWC 编译 `next.config.ts`。npm 上 `@next/swc` 只有两种
+ * linux-arm64 变体（`musl` / `gnu`），**没有 `ohos`**（已核对 registry）。缺原生绑定时
+ * Next 会依次尝试：`next-swc-fallback/<当前平台>` → **`@next/swc-wasm-nodejs`** → 联网补下载。
+ *
+ * 实测结果（本机，清空 `%LOCALAPPDATA%\next-swc` 缓存后）：
+ *   - 只有 win32 原生件：`Downloading swc package @next/swc-wasm-nodejs...`，`next.config.ts` 1635 ms
+ *   - 内置 WASM 包后：  **无任何下载**，`next.config.ts` **271 ms**，9 项门禁全 PASS
+ *
+ * 因此把 `@next/swc-wasm-nodejs@<next 版本>` 内置进 `pi-dist/node_modules/@next/`。
+ * WASM 是**平台无关**的 —— 同一份字节在 aarch64-ohos 上同样可用，不需要交叉编译。
+ *
+ * 解析路径（✅ 读自 Next 源码 `dist/build/swc/index.js` 的 `loadWasmRawBindings`）：
+ * `importPath` 为空时按**裸包名**解析，即 `node_modules/@next/swc-wasm-nodejs/wasm.js`；
+ * 而 `importPath` 只在 fallback 路径下传入，故裸包名落点是正确且必需的。
+ */
+const WASM_SWC_PKG = '@next/swc-wasm-nodejs';
+function provisionWasmSwc() {
+  const nextVersion = JSON.parse(
+    readFileSync(join(piWebNodeModules, 'next', 'package.json'), 'utf8'),
+  ).version;
+  const spec = `${WASM_SWC_PKG}@${nextVersion}`;
+  const dest = join(destNodeModules, '@next', 'swc-wasm-nodejs');
+  if (existsSync(join(dest, 'wasm_bg.wasm')) && existsSync(join(dest, 'wasm.js'))) {
+    console.log(`${LOG} ✔ WASM SWC 已就位（${spec}）`);
+    return;
+  }
+  console.log(`${LOG} 内置 WASM SWC：${spec}`);
+  // 先在 npm 缓存里找，避免每次重新下载；找不到再 pack。
+  let tgz = null;
+  try {
+    const packDir = join(projectRoot, '.collect-pi-tmp');
+    mkdirSync(packDir, { recursive: true });
+    const expected = join(packDir, `next-swc-wasm-nodejs-${nextVersion}.tgz`);
+    if (existsSync(expected)) {
+      tgz = expected;
+      console.log(`${LOG} 复用已下载的 ${expected.split(/[\\/]/).pop()}`);
+    } else {
+      const out = execFileSync('npm', ['pack', spec, '--silent'], {
+        cwd: packDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'],
+        shell: process.platform === 'win32',
+      }).trim().split('\n').pop();
+      tgz = join(packDir, out);
+      if (!existsSync(tgz)) fail(`npm pack ${spec} 未产出归档（期望 ${tgz}）`);
+    }
+  } catch (err) {
+    fail(
+      `下载 ${spec} 失败：${err.message.split('\n')[0]}\n` +
+        '  该包是离线的关键：缺了它，设备侧 Next 会尝试联网补下载 SWC 而失败/超时。',
+    );
+  }
+  // 用 Python tarfile 解压（避免 Git-Bash tar 的盘符路径问题），取 package/ 下所有文件
+  const py = `
+import os, sys, tarfile
+arch, dest = sys.argv[1], sys.argv[2]
+os.makedirs(dest, exist_ok=True)
+with tarfile.open(arch, 'r:gz') as t:
+    for m in t.getmembers():
+        parts = m.name.split('/')
+        if len(parts) <= 1 or parts[0] != 'package':
+            continue
+        rel = '/'.join(parts[1:])
+        if not rel:
+            continue
+        target = os.path.join(dest, rel)
+        if m.isdir():
+            os.makedirs(target, exist_ok=True)
+            continue
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        src = t.extractfile(m)
+        with open(target, 'wb') as out:
+            while True:
+                chunk = src.read(1 << 20)
+                if not chunk:
+                    break
+                out.write(chunk)
+print('ok')
+`;
+  try {
+    execFileSync('python', ['-c', py, tgz, dest], { stdio: ['ignore', 'pipe', 'inherit'] });
+  } catch (err) {
+    fail(`解压 ${spec} 失败：${err.message.split('\n')[0]}（需要系统 PATH 上有 python）`);
+  }
+  if (!existsSync(join(dest, 'wasm_bg.wasm'))) fail(`解压后缺 wasm_bg.wasm：${dest}`);
+  const { files, bytes } = measureTree(dest);
+  console.log(`${LOG} ✔ WASM SWC 已内置 → node_modules/@next/swc-wasm-nodejs（${files} 个文件，${human(bytes)}）`);
+}
+
+// 顶层 package.json 仍是 pi-web 的（Next 读它解析版本与依赖），node_modules 已按闭包裁剪：
 // Next 不会在运行期校验 node_modules 完整性（它只 require 需要的包），故无需改写依赖清单。
 console.log(`${LOG} 保留 pi-dist/package.json 原样（${piWebPkg.name}@${piWebPkg.version}）`);
+provisionWasmSwc();
 
 // ── 3. 壳预置资源（投放源，不是生效位置）──────────────────────────────
 banner('3. 壳预置资源 → pi-dist/resources/pi-agent/');
@@ -258,8 +407,16 @@ try {
 }
 if (existsSync(archivePath)) rmSync(archivePath, { force: true });
 try {
-  execFileSync('tar', ['-czf', archivePath, '--format=ustar', '-C', projectRoot, 'pi-dist'], {
-    stdio: 'inherit', shell: process.platform === 'win32',
+  /**
+   * ⚠️ 路径必须用**相对路径**。这是踩了两次之后定下的规则。
+   *
+   * Git-Bash 的 `tar` 把任何以盘符开头的路径（`D:\x\y` 与 `D:/x/y` **都**）当成
+   * **远程主机**来解析，报 `tar (child): Cannot connect to D: resolve failed`
+   * （正斜杠形式也一样失败，实测）。相对路径不受影响：把 `cwd` 设为工程根，
+   * 归档名与源目录都用相对名即可。
+   */
+  execFileSync('tar', ['-czf', 'pi-dist.tar.gz', '--format=ustar', '-C', '.', 'pi-dist'], {
+    cwd: projectRoot, stdio: 'inherit', shell: process.platform === 'win32',
   });
 } catch (err) {
   fail(`tar 打包失败：${err.message.split('\n')[0]}`);

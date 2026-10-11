@@ -1,0 +1,19 @@
+{
+  "shortcuts": [
+    {
+      "shortcutId": "OpenNewWindow",
+      "label": "$string:OpenNewWindow_label",
+      "icon": "$media:app_icon",
+      "wants": [
+        {
+          "bundleName": "org.fellow99.pi.PiDesktop",
+          "moduleName": "electron",
+          "abilityName": "EntryAbility",
+          "parameters": {
+            "openInNewWindow": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

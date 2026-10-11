@@ -20,8 +20,16 @@
 # pi 构建产物与运行时二进制（构建期生成 / 从 sibling 工程 copy，不入库）
 /pi-dist/
 pi-dist.tar.gz
+pi-dist.version
 *.so
 /electron/libs/
+# 注意：resfile 下的同名 marker 是 collect-app 每次生成的应用产物（与上面的 tar 成对），
+# 它不是运行时 copy 来的上游文件，因此单独忽略。
+/web_engine/src/main/resources/resfile/resources/app/pi-dist.version
+
+# collect 脚本的下载缓存（如 npm pack 取回的 WASM SWC tgz）：可重新获取，不入库
+/.collect-pi-tmp/
+/.collect-runtime-tmp/
 
 # 便携运行时暂存目录（构建期投放的原生件；本工程无市场/pnpm 运行时获取步骤）
 /runtime/

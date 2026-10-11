@@ -1,0 +1,40 @@
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+# hvigor 为 HAR 模块生成的 BuildProfile.ets：与 HAP 不同，它落在模块根目录而非 build/ 下，
+# 未被上面的 **/build 覆盖；内容随 buildMode 每次构建重写（release/debug 翻转），故不入库。
+/web_engine/BuildProfile.ets
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer
+/.omo
+/.codegraph
+.playwright-mcp
+
+# pi 构建产物与运行时二进制（构建期生成 / 从 sibling 工程 copy，不入库）
+/pi-dist/
+pi-dist.tar.gz
+*.so
+/electron/libs/
+
+# 便携运行时暂存目录（构建期投放的原生件；本工程无市场/pnpm 运行时获取步骤）
+/runtime/
+
+# 签名配置（含密钥/证书路径与密文口令，不入库；样例见 signing.<mode>.local.json.sample）
+signing.local.json
+signing.debug.local.json
+signing.release.local.json
+!signing.debug.local.json.sample
+!signing.release.local.json.sample
+
+# 本地签名材料目录（.p12/.cer/.p7b/.csr + material 解密密钥链，绝不入库）
+/.ohos/
+
+# 阶段日志与证据（构建日志、截图、报告）— 入库策略同 desktop，不入库
+/logs/

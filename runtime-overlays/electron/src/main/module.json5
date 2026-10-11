@@ -1,0 +1,121 @@
+{
+  "module": {
+    "name": "electron",
+    "type": "entry",
+    "srcEntry": "./ets/Application/AbilityStage.ets",
+    "description": "$string:module_desc",
+    "mainElement": "EntryAbility",
+    "deviceTypes": [
+      "2in1",
+      "tablet"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    // 后台保活（K1）：申请长时任务需要该权限，业务类型由 EntryAbility 的 backgroundModes 声明。
+    // 权限本身是 system_grant（安装即授予）；能否真正申请到长时任务由系统按业务一致性校验。
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING"
+      }
+    ],
+    "metadata": [
+      {
+        "name": "client_id",
+        "value": ""
+      }
+    ],
+    "abilities": [
+      {
+        "name": "EntryAbility",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "icon": "$media:window_icon",
+        "label": "$string:EntryAbility_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "launchType": "specified",
+        "removeMissionAfterTerminate": true,
+        "exported": true,
+        // 后台保活（K1）：「长时任务」的业务类型。仅 UIAbility 可申请；TASK_KEEPING 自 API 21 起
+        // 对 PC/2in1 开放。申请成功后通知栏必显，用户删除该通知即停止任务——这是系统保证的可见性。
+        // 三个 Ability 中只有本 Ability 是主入口且在默认进程，故只在这里声明。
+        "backgroundModes": [
+          "taskKeeping"
+        ],
+        // 去浏览器语义（上架合规，见 docs/工程规划.md §4.7）：EntryAbility 是应用自身的桌面入口，
+        // 这里**故意不**声明 `entity.system.browsable` 与 `ohos.want.action.viewData`。声明后本应用
+        // 会被系统与应用市场当作「浏览器」对待（要求提供地址栏/书签等浏览器能力），并可能成为外部
+        // URL 的默认打开目标。故只保留桌面入口所需的 entity.system.home + action.system.home；
+        // 外部网页（帮助/文档/隐私政策/用户协议/OAuth/导出）一律走 ArkWeb 页 pages/ExternalWeb。
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ],
+            "uris": []
+          }
+        ],
+        "metadata": [
+          {
+            "name": "ohos.ability.shortcuts",
+            "resource": "$profile:shortcuts_config"
+          },
+        ],
+      },
+      {
+        "name": "BrowserAbility",
+        "srcEntry": "./ets/entryability/BrowserAbility.ets",
+        "description": "$string:BrowserAbility_desc",
+        "startWindowIcon": "$media:app_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "removeMissionAfterTerminate": true,
+        "exported": false,
+        // 去浏览器语义（上架合规，见 docs/工程规划.md §4.7）只针对主入口 EntryAbility：本 Ability
+        // 保留 viewData 技能以维持上游内部调用契约，但 `exported: false` 使它**无法**被其他应用
+        // 拉起，因而不会成为外部 URL / 文件关联的默认打开目标；
+        // 应用内的外部网页统一走 ArkWeb 页 pages/ExternalWeb。
+        "skills": [
+          {
+            "actions": [
+              "ohos.want.action.viewData"
+            ],
+            "uris": []
+          }
+        ],
+        "process": ':browser'
+      },
+      {
+        "name": "StatelessAbility",
+        "srcEntry": "./ets/entryability/StatelessAbility.ets",
+        "description": "$string:StatelessAbility_desc",
+        "label": "$string:StatelessAbility_label",
+        "startWindowIcon": "$media:app_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "launchType": "specified",
+        "removeMissionAfterTerminate": true,
+        "exported": true,
+        "process": ':browser'
+      }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "StatusBarEntryAbility",
+        "icon": "$media:app_icon",
+        "description": "$string:StatusBarEntryAbility_desc",
+        "type": "statusBarView",
+        "exported": false,
+        "srcEntry": "./ets/entryability/StatusBarEntryAbility.ets"
+      },
+      {
+        "name": "BrowserEmbeddedAbility",
+        "srcEntry": "./ets/extensionAbility/BrowserEmbeddedAbility.ets",
+        "type": "embeddedUI",
+        "exported": false,
+      }
+    ]
+  }
+}

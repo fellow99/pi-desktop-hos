@@ -1,6 +1,6 @@
 ---
 name: harmony-runtime-capabilities
-description: What this HarmonyOS build of Pi can and cannot do — which built-in tools work, why `find` and `grep` are unavailable (they need external binaries), what `bash` actually spawns, why a subprocess cannot run Node, and which file operations behave differently. Read this before assuming a tool or command works.
+description: What this HarmonyOS build of Pi can and cannot do — which built-in tools work (and which ones are re-implemented by the shipped shell extensions), what `bash` actually spawns, why a subprocess cannot run Node, and which file operations behave differently. Read this before assuming a tool or command works.
 whenToUse: Before running shell commands with `bash`, before using `find`/`grep`, when a tool reports a missing binary, when writing files outside the session workspace, or when a tool seems to be absent.
 ---
 
@@ -20,43 +20,37 @@ executable**, a **TTY**, or **JIT in a child process** does not.
 |---|---|---|
 | `read` / `write` / `edit` | **available** | pure Node.js |
 | `ls` | **available** | pure Node.js (`fs.readdir`) |
-| `bash` | **hangs on device — avoid** | it spawns the system `sh`, but the child's `exit`/`close` event never arrives on this platform, so a call may never return; see below |
-| `find` | **unavailable** | shells out to the `fd` binary, which this device does not have and which cannot be downloaded |
-| `grep` | **unavailable** | shells out to the `ripgrep` (`rg`) binary, same reason |
+| `bash` | **available** (shell extension) | resident `/system/bin/sh` + sentinel-line protocol, because the child's `exit`/`close` events never arrive on this platform; see below |
+| `find` | **available** (shell extension) | pure-JS directory walk — the built-in one shells out to `fd`, which this device does not have |
+| `grep` | **available** (shell extension) | pure-JS content search — the built-in one shells out to `ripgrep` (`rg`), same reason |
 | `powershell` | **absent** | Windows-only tool |
 
-`find` and `grep` will fail with an error such as `fd is not available and could not be
-downloaded`. That is expected, not a temporary fault: this build runs with `PI_OFFLINE=1`, so
-Pi never tries to fetch a binary, and the device ships neither `fd` nor `rg`.
+`bash`, `find` and `grep` are **replaced by shell extensions shipped with this build**
+(`extensions/harmony-exec.js`, `extensions/harmony-search.js`). They keep the built-in tool
+**names and parameters**, so how you call them does not change — but the implementations no
+longer need `fd`/`rg`, and no longer wait for process events that never fire.
 
-**There is currently no working replacement for content search.** The toybox applets `find` / `grep`
-(as *shell commands*, reached through the `bash` tool) do exist and would work — but the `bash` tool
-itself is not usable on this platform (see the next section), so you cannot reach them. Concretely:
+### What to use for what
 
-| want | tool | shell command via `bash` |
-|---|---|---|
-| list a directory | `ls` ✅ | — |
-| find files by name | `find` tool ❌ (needs `fd`) | ⛔ unreachable (bash hangs) |
-| search file contents | `grep` tool ❌ (needs `rg`) | ⛔ unreachable (bash hangs) |
+| want | use |
+|---|---|
+| list a directory | `ls` |
+| find files by name | `find` (glob; use `**` to recurse, e.g. `**/*.json`) |
+| search file contents | `grep` (regex by default, `literal` for plain text, `glob` to filter files) |
+| run a command | `bash` (mksh R59 — but read the limits below first) |
 
-Practical guidance: **do not claim to have searched.** Enumerate with `ls`, then `read` the specific
-files you need. If a task genuinely requires recursive search, tell the user that this HarmonyOS build
-cannot do it (rather than silently guessing or fabricating results). This is a known gap tracked as
-R14 in `docs/工程规划.md`; the fix decision (wrap/replace the `bash` tool from the shell extension, or
-patch pi's child-process wait) is still open.
-
-> Note on the name collision: "`find` does not work" is true of the **tool** and false of the
-> **command** — but on this build neither is reachable end-to-end, because the only way to run the
-> command is the `bash` tool.
+Both search tools skip dot-directories, `node_modules` and `.git`, and **report every cap they
+hit** (depth, file count, per-file size, result limit) in the output. They do **not** parse
+`.gitignore` — the exclusion rules are the simpler ones above. Files over 512 KiB are skipped
+and counted rather than read.
 
 ## Command execution (`bash`)
 
-`bash` **should be avoided on this device.** It does spawn a real shell — **`/system/bin/sh`, which is mksh R59** —
-with the application's own permissions and **without** a PTY, but on HarmonyOS the child's `exit`/`close` event
-**never arrives** (the child becomes a zombie), and Pi's shell tool waits for exactly that event with no polling
-and no deadline. Measured on device (`pi-desktop-hos` v0.11.1): the command really runs and stdout comes back,
-then nothing further is observed — so **prefer `read`/`write`/`edit`/`ls`**, and reach for `bash` only when
-nothing else fits, expecting that the call may hang.
+`bash` works on this device, through a **resident** `/system/bin/sh` (mksh R59) driven by a
+sentinel-line protocol. Why it needs that: the platform **never delivers a child's `exit`/`close`
+events**, so the built-in spawn-based tool waits forever and never returns. The extension instead
+marks the end of each command with a fresh random sentinel line on stdout, and never depends on
+any process event.
 
 What this means in practice:
 
@@ -72,14 +66,28 @@ What this means in practice:
   `web_search` / `web_fetch` tools, not the shell.
 - `node`, `npm`, `npx`, `pnpm`, `python` are **not** on `PATH` for this application. Do not
   try to run them.
-- A non-zero exit code is a normal result, not a tool error.
+- A non-zero exit code is reported as `(exit code N)` and marks the result as an error. That
+  is normal for a failing command, not a tool malfunction.
+- **There is a default timeout of 120 seconds** (pass `timeout` in seconds to change it). On
+  timeout the resident shell is reset — output produced **before** the deadline is still
+  returned, followed by the timeout notice — and the next call starts a fresh shell. Commands
+  that were still running are killed **with their children** (the shell is a process group),
+  so a killed command cannot leak output into a later call.
+- **A command's stdin is `/dev/null`** (same as the built-in tool). So `cat`, `read` or a
+  `grep` with no file argument return **immediately with empty input** instead of waiting for
+  input that will never come.
+- **Every command runs in a subshell with the working directory re-set to the session
+  workspace.** If that directory no longer exists the command fails at once (`cd failed: …`).
+  `cd` and shell variables do **not** persist between calls — pass absolute paths, or `cd`
+  inside the same command line. A bare `exit`/`exec` only ends that subshell; it returns its
+  exit code and does **not** break subsequent calls.
+- stderr is **merged into stdout** (order preserved), so errors appear inline in the output.
 - **No command in `bash` is fenced.** The shell runs with the application's full file access,
   so it can read and write wherever the application can — including outside the session
-  workspace, bypassing the file-approval flow. Prefer the `read`/`write`/`edit` tools for
-  file work, and reach for `bash` only when nothing else fits.
-- **The first spawn of the shell is what makes a command possible at all; there is no
-  per-command `workdir` parameter.** State (`cd`, shell variables) does not reliably persist
-  between `bash` calls — pass an absolute path or `cd` within the same command line.
+  workspace, bypassing the file-approval flow. Prefer the `read`/`write`/`edit` tools for file
+  work, and reach for `bash` when a shell is genuinely the right tool.
+- The resident shell is **reused across calls** (one long-lived process rather than one per
+  command), which also keeps zombie leakage far lower than the built-in tool's per-command spawn.
 
 ### Do not expect a Node script to run in a subprocess
 
@@ -95,10 +103,10 @@ The practical consequence: anything that needs a JavaScript runtime must run **i
 agent process** (which is where Pi itself runs), never in a child process.
 
 ## Listing and finding files
-
-- `ls` lists a directory (pure Node.js) — use it for a plain directory listing.
-- To search by pattern, use shell commands: `bash("find . -name '*.json'")`.
-- To search file contents, use `bash("grep -rn '…' <dir>")`.
+- To search by pattern, use the **`find`** tool (glob; `**` recurses). It no longer needs the `fd` binary —
+  this build ships `extensions/harmony-search.js`, which re-implements `find` and `grep` in pure JavaScript.
+- To search file contents, use the **`grep`** tool (regex by default, plus `literal`, `ignoreCase`, `glob`, `context`).
+  The toybox commands `find` / `grep` also work now through the `bash` tool, and are a fine fallback.
 
 ## Paths, sandbox, and user directories
 

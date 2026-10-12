@@ -30,14 +30,17 @@ const TOOL_FACTS = [
   { name: "ls", ok: true, why: "纯 Node.js（fs.readdir）" },
   {
     name: "bash",
-    ok: false,
-    why: `spawn ${HARMONY_SHELL}（mksh R59），无 PTY；命令不受文件围栏保护。`
-      + " ⚠️ 真机实测（0.11.1）：命令确实执行且 stdout 返回，但子进程的 exit/close 事件"
-      + "**永不送达**（进程变僵尸），而 pi 的 shell 工具只等该事件、无轮询也无截止时间"
-      + "→ 调用可能一直挂住。优先用 read/write/edit/ls。",
+    ok: true,
+    why: `由 harmony-exec.js 顶替内建实现：spawn ${HARMONY_SHELL}（mksh R59）常驻 + 随机哨兵行协议。`
+      + " 命令以应用身份运行、无 PTY；默认 120 s 超时；stderr 合并；每条命令在子 shell 内执行"
+      + "（`cd`/变量不跨调用保留）；**命令不受文件围栏保护**。",
   },
-  { name: "find", ok: false, why: "需要 fd 外部二进制：设备没有，且 PI_OFFLINE=1 禁止下载" },
-  { name: "grep", ok: false, why: "需要 ripgrep（rg）外部二进制：同上" },
+  {
+    name: "find / grep",
+    ok: true,
+    why: "由 harmony-search.js 顶替内建实现：纯 JS 遍历，不再需要 fd / ripgrep（设备上不存在且 PI_OFFLINE=1 禁止下载）。"
+      + " 跳过点目录与 node_modules/.git（不解析 .gitignore），并显式报告各类上限。",
+  },
   { name: "powershell", ok: false, why: "Windows 专用工具" },
   { name: "codemode", ok: null, why: "需 worker_threads + QuickJS wasm —— 未实测" },
 ];
@@ -79,9 +82,10 @@ function buildReport(ctx) {
     toolTable,
     "",
     "替代做法",
-    "  · ⚠️ 递归搜索在本版本**实质不可用**：toybox 的 find/grep *命令*存在，但唯一调用通道 bash 工具",
-    "    在真机上会挂住（子进程结束事件不送达）→ 端到端不可达。改用 ls 枚举 + read 读具体文件；",
-    "    若任务确实需要递归搜索，如实告知用户「本 HarmonyOS 构建做不到」，不要假装搜过。",
+    "  · 搜索用 find / grep 工具（壳扩展的纯 JS 实现），不要依赖 fd/rg —— 它们不存在。",
+    "    find 的 pattern 用 `**` 递归（如 `**/*.json`）；grep 默认按正则，`literal` 关掉正则。",
+    "  · 需要跑命令时用 bash 工具（壳扩展的常驻 shell）：有 120 s 默认超时、stderr 合并、",
+    "    每条命令在子 shell 内执行（cd/变量不跨调用保留），顶层 exit 不会打断后续调用。",
     "  · 子进程跑 Node 脚本不可用：node -v 会打印版本，但 node -e / node x.js 无任何输出且进程变僵尸，",
     "    终止原因取不到（exit 事件不来、signalCode 恒 null）。参考工程记为 Signal 31 SIGSYS（seccomp 拦 JIT），",
     "    在本机属**未经证实**；无论原因，需要 JS 运行时的东西都必须在 agent 进程内跑。",

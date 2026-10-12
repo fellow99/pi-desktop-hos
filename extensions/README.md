@@ -16,7 +16,12 @@ pi 会**自动扫描**该目录（直接 `*.ts` / `*.js` 文件，以及一层�
 
 | 文件 | 作用 |
 |---|---|
+| `harmony-exec.js` | **顶替内建 `bash`**。常驻非 PTY `/system/bin/sh`（mksh R59）+ **随机哨兵行协议** —— 结束判定只看 stdout 的哨兵行，不依赖本平台永不送达的 `exit`/`close` 事件。默认 120 s 超时（**超时仍返回已产出的输出**）、stderr 合并、命令 stdin 为 `/dev/null`、输出 256 KiB 截断、常驻 shell 死亡后自动重启；重置时杀**整个进程组**（被超时/中止的命令的子进程不会污染后续结果）。详见 `specs/102-harmony-js-tools/`。 |
+| `harmony-search.js` | **顶替内建 `grep` 与 `find`**。纯 JS 迭代式 BFS 遍历（零子进程、零外部二进制），因为内建版本分别需要设备上不存在的 `rg` / `fd`。输出形如 `<path>:<行号>: <内容>`；支持 `*` / `?` / `**` / `{a,b}` / `[0-9]`；`find` 用智能大小写（与 fd 默认一致）；所有上限（结果数/文件数/单文件字节/深度/单行字符数）**触顶时都在输出里显式说明**。 |
 | `harmony-runtime.js` | 壳专用扩展。提供 `/harmony-info` 命令（打印运行时事实与工具可用性），并在 `session_start` 校验 `/system/bin/sh` 存在性（只警告、不抛错）。同时充当「PL1 扩展通道是否生效」的自检探针。 |
+
+宿主侧回归测试：`node scripts/test-harmony-tools.mjs`（33 条断言，零设备运行，只覆盖纯 JS 的搜索扩展；
+执行扩展需要设备上的 `/system/bin/sh`，由 `docs/真机验证记录.md` 轮次 3/3b 的真机用例覆盖）。
 
 ## 与 dsh / oc 的分工对照
 

@@ -258,30 +258,45 @@ console.log(`${LOG} 副本内裁剪平台专用原生件：${prunedNative} 项�
  * **没有 `@next/swc-linux-arm64-ohos`**（已核对 registry）。
  *
 /**
- * SWC 的 aarch64-ohos 缺口 —— 用**WASM 版 SWC** 彻底解决（✅ 已实测）。
+ * SWC 的 aarch64-ohos 缺口 —— 用**WASM 版 SWC** 彻底解决（✅ 已真机复验）。
  *
  * 背景：Next 在运行期用 SWC 编译 `next.config.ts`。npm 上 `@next/swc` 只有两种
  * linux-arm64 变体（`musl` / `gnu`），**没有 `ohos`**（已核对 registry）。缺原生绑定时
- * Next 会依次尝试：`next-swc-fallback/<当前平台>` → **`@next/swc-wasm-nodejs`** → 联网补下载。
+ * Next 的 `tryLoadWasmWithFallback`（`dist/build/swc/index.js`）分两步走：
+ *   ① `loadWasm('')` —— 这一步对**裸包名也先做 `pathToFileURL()`**，得到的是
+ *      `<cwd>/@next/swc-wasm-nodejs` 这种不存在的路径，因此**必然失败**；
+ *   ② 回退到 `downloadWasmSwc(nextVersion, wasmDirectory)`，其中
+ *      `wasmDirectory = join(dirname(require.resolve('next/package.json')), 'wasm')`
+ *      即 `node_modules/next/wasm/`；该函数**先看 `node_modules/next/wasm/@next/swc-wasm-nodejs/`
+ *      是否存在，存在就直接 return（既不联网也不读 npm 缓存）**；随后
+ *      `loadWasm(wasmDirectory)` 以**绝对路径** import 该目录下的 `wasm.js`。
  *
- * 实测结果（本机，清空 `%LOCALAPPDATA%\next-swc` 缓存后）：
- *   - 只有 win32 原生件：`Downloading swc package @next/swc-wasm-nodejs...`，`next.config.ts` 1635 ms
- *   - 内置 WASM 包后：  **无任何下载**，`next.config.ts` **271 ms**，9 项门禁全 PASS
+ * ⚠️ v1.1 的落点（`node_modules/@next/swc-wasm-nodejs`）是错的 —— 那正是第 ① 步的死路。
+ * 当时“内置后零下载”的结论是**假阳性**：宿主机早先一次联网下载把 `node_modules/next/wasm/@next/…`
+ * 留在了产物副本里，掩盖了真实机制。真机（全新安装、无外网）首次启动即卡在补下载上：
+ *   `Downloading swc package @next/swc-wasm-nodejs... to /data/storage/el2/base/files/tmp/next-swc`
+ * 之后既无成功也无失败日志，页面永久停在启动闪屏。
  *
- * 因此把 `@next/swc-wasm-nodejs@<next 版本>` 内置进 `pi-dist/node_modules/@next/`。
+ * A/B 复现（本机 Node 22.17，删掉 `node_modules/next/wasm/` 前后各跑一次 `loadBindings()`）：
+ *   - 无 `next/wasm/`：`Downloading swc package @next/swc-wasm-nodejs...` ← 与真机日志逐字一致
+ *   - 有 `next/wasm/`：**0 次下载**，`BINDINGS OK, transform=function`
+ *
+ * 因此把 `@next/swc-wasm-nodejs@<next 版本>` 内置到 **`node_modules/next/wasm/@next/`**。
  * WASM 是**平台无关**的 —— 同一份字节在 aarch64-ohos 上同样可用，不需要交叉编译。
- *
- * 解析路径（✅ 读自 Next 源码 `dist/build/swc/index.js` 的 `loadWasmRawBindings`）：
- * `importPath` 为空时按**裸包名**解析，即 `node_modules/@next/swc-wasm-nodejs/wasm.js`；
- * 而 `importPath` 只在 fallback 路径下传入，故裸包名落点是正确且必需的。
  */
 const WASM_SWC_PKG = '@next/swc-wasm-nodejs';
+/**
+ * Next 探测 WASM SWC 的**唯一生效落点**：`<next 包目录>/wasm/@next/swc-wasm-nodejs/`。
+ * 与 `downloadWasmSwc` 的提前返回条件、`loadWasm(wasmDirectory)` 的 import 路径三者必须一致；
+ * 改动此处必须同步核对 `dist/build/swc/index.js` 的 `tryLoadWasmWithFallback`。
+ */
+const WASM_SWC_DEST = ['next', 'wasm', '@next', 'swc-wasm-nodejs'];
 function provisionWasmSwc() {
   const nextVersion = JSON.parse(
     readFileSync(join(piWebNodeModules, 'next', 'package.json'), 'utf8'),
   ).version;
   const spec = `${WASM_SWC_PKG}@${nextVersion}`;
-  const dest = join(destNodeModules, '@next', 'swc-wasm-nodejs');
+  const dest = join(destNodeModules, ...WASM_SWC_DEST);
   if (existsSync(join(dest, 'wasm_bg.wasm')) && existsSync(join(dest, 'wasm.js'))) {
     console.log(`${LOG} ✔ WASM SWC 已就位（${spec}）`);
     return;
@@ -344,7 +359,7 @@ print('ok')
   }
   if (!existsSync(join(dest, 'wasm_bg.wasm'))) fail(`解压后缺 wasm_bg.wasm：${dest}`);
   const { files, bytes } = measureTree(dest);
-  console.log(`${LOG} ✔ WASM SWC 已内置 → node_modules/@next/swc-wasm-nodejs（${files} 个文件，${human(bytes)}）`);
+  console.log(`${LOG} ✔ WASM SWC 已内置 → node_modules/${WASM_SWC_DEST.join('/')}（${files} 个文件，${human(bytes)}）`);
 }
 
 // 顶层 package.json 仍是 pi-web 的（Next 读它解析版本与依赖），node_modules 已按闭包裁剪：

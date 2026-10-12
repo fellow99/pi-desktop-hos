@@ -11,7 +11,7 @@ platform removes several capabilities that a normal Pi install has, and the shel
 Linux desktop shell. Check the facts below before you spend turns discovering them.
 
 The host is Pi's own agent runtime running inside an Electron main process, together with the
-Pi Web server. Everything that is pure JavaScript works. Everything that needs an **external
+Pi Desktop server. Everything that is pure JavaScript works. Everything that needs an **external
 executable**, a **TTY**, or **JIT in a child process** does not.
 
 ## Available tools
@@ -135,7 +135,7 @@ agent process** (which is where Pi itself runs), never in a child process.
 
 - The agent's HTTP access is through `web_search` / `web_fetch`. The shell has no special
   network grant and no `curl`.
-- The Pi Web server listens on the device's **LAN address**, not on `127.0.0.1`: the platform
+- The Pi Desktop server listens on the device's **LAN address**, not on `127.0.0.1`: the platform
   isolates loopback between processes, so the renderer reaches the server over the local
   network interface. A password is always set for that server.
 

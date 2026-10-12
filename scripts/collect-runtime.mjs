@@ -41,6 +41,8 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, write
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { applyRepoBranding, loadMaterial } from './brand-assets.mjs';
+
 // ---------------------------------------------------------------- 参数/路径
 
 const argv = process.argv.slice(2);
@@ -354,6 +356,21 @@ print(f'{wrote} {kept}')
 
 // ---------------------------------------------------------------- 阶段 1
 
+// ---------------------------------------------------------------- 阶段 0.5
+
+/**
+ * 品牌化（需求 103）：按**父工程** `../assets/` 的物料生成本工程自有的图标位
+ * （`AppScope/resources/base/media/*` + overlay 状态栏字形）。
+ *
+ * 为什么放在阶段 1 之前：阶段 1 是**整目录覆盖**拷贝上游外壳，阶段 3 才回盖 overlay；
+ * overlay 源（`runtime-overlays/web_engine/.../electron_white.png`）必须先被写成品牌字形，
+ * 否则阶段 3 会把旧字节盖回工作树。详见 `scripts/brand-assets.mjs` 与 `specs/103-branding/`。
+ */
+function stage05BrandAssets() {
+  stageBanner('0.5', '品牌化图标物料（父工程 assets/）');
+  const material = loadMaterial(process.argv.slice(2));
+  applyRepoBranding({ material });
+}
 function copyModule(name) {
   const src = resolve(runtimeRoot, name);
   const dest = resolve(projectRoot, name);
@@ -633,6 +650,7 @@ function main() {
   const manifest = stage0Load();
   if (!VERIFY_ONLY) {
     if (!SKIP_EXTRACT) stage0bProvisionRuntime(manifest);
+    stage05BrandAssets();
     stage1CopyRuntime();
     stage1bPruneRuntime();
     stage3ApplyOverlays();

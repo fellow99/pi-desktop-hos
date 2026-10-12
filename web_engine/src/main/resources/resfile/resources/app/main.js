@@ -48,8 +48,8 @@ const MARKER_NAME = 'pi-dist.sha256';
 const READY_TIMEOUT_MS = 30_000;
 const READY_INTERVAL_MS = 400;
 const READY_PROBE_PATH = '/api/web-auth';
-/** pi-web UI 标记（app/layout.tsx 的 metadata.title = "Pi Web"）。 */
-const UI_HTML_MARKERS = ['Pi Web'];
+/** pi-web UI 标记：`app/layout.tsx` 的 `metadata.title`（构建期已被品牌化为 "Pi Desktop"）。 */
+const UI_HTML_MARKERS = ['Pi Desktop', 'Pi Web'];
 
 /** pi-web 会话 cookie / Basic 用户名，镜像 pi-web/lib/web-auth.ts（改动需同步）。 */
 const PI_WEB_SESSION_COOKIE = 'pi_web_session';
@@ -260,6 +260,15 @@ function assembleSandboxEnv() {
   // PL1：关闭包自动安装与 fd/rg 二进制下载（§5.1 注入点 2；两者都变成可见 warning，不是硬失败）。
   if (!process.env.PI_OFFLINE) process.env.PI_OFFLINE = '1';
 
+  // 品牌化（需求 103）：**保留当前版本显示，但禁用「检测新版本」**。
+  // pi-web 的 `/api/app-update` 有运行时开关（`app/api/app-update/route.ts:11`）：置位后直接返回
+  // `updateAvailable:false`，客户端因此不渲染「→ v… ↗」链接，而 hero 里的 `web v…` / `pi v…` 照旧显示。
+  // 用上游开关而不是改产物里的 fetch 目标：零上游改动、行为由上游保证。
+  if (!process.env.PI_WEB_SKIP_VERSION_CHECK) process.env.PI_WEB_SKIP_VERSION_CHECK = '1';
+  // PWA manifest 的显示名（`app/manifest.ts` 运行时读该变量）：产物里的 `Pi Web` 已由构建期替换，
+  // 这里把「运行时可配」的那条路也钉成同一品牌名。
+  if (!process.env.PI_WEB_APP_NAME) process.env.PI_WEB_APP_NAME = 'Pi Desktop';
+
   // 代理绕过：本机请求必须直连（服务端绑 0.0.0.0，页面走局域网 IP）。
   const bypass = new Set(
     (process.env.NO_PROXY || process.env.no_proxy || '')
@@ -292,7 +301,7 @@ function assembleSandboxEnv() {
   logInfo(`HOME = ${userData}`);
   logInfo(`PI_CODING_AGENT_DIR = ${piAgentDir}`);
   logInfo(`TMPDIR = ${tmpDir}`);
-  logInfo(`PI_OFFLINE = ${process.env.PI_OFFLINE}`);
+  logInfo(`PI_OFFLINE = ${process.env.PI_OFFLINE}｜PI_WEB_SKIP_VERSION_CHECK = ${process.env.PI_WEB_SKIP_VERSION_CHECK}｜PI_WEB_APP_NAME = ${process.env.PI_WEB_APP_NAME}`);
 }
 
 function safeTmpdir(fn) {
@@ -1094,7 +1103,7 @@ app.whenReady().then(async () => {
     if (marker) {
       logInfo(`首屏完成，UI 标记命中：${marker}`);
     } else {
-      logWarn('首屏 HTML 未命中预期 UI 标记（Pi Web），请检查是否被重定向到登录页');
+      logWarn(`首屏 HTML 未命中预期 UI 标记（${UI_HTML_MARKERS.join(' / ')}），请检查是否被重定向到登录页`);
     }
     setStage('就绪');
     // 首屏已就位：把窗口标题交还给页面（loading 阶段的「阶段文本标题」到此结束）。

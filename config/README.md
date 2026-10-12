@@ -29,7 +29,7 @@ config/{settings.json,mcp.json}  →  pi-dist/resources/pi-agent/{settings.json,
 - **`extensions`**：**不写**。壳专用扩展直接落 `<userData>/pi-agent/extensions/`，
   由 pi 的扩展自动发现扫描拾取。无需声明，也就不会因为声明漂移而失效。
 - **终端 TUI 专有键**（`theme`、`tuiMode`、`hideThinkingBlock`、`treeFilterMode` …）：
-  本应用的主界面是 Pi Web（浏览器 UI），不渲染 TUI。写这些键只会造成"设了但没人读"
+  本应用的主界面是 Pi Desktop（浏览器 UI，基于上游 pi-web 构建），不渲染 TUI。写这些键只会造成"设了但没人读"
   的假象。留给用户按需自行添加。
 - **`skills` / `prompts` / `themes` 的路径数组**：同上，靠自动发现即可。
 

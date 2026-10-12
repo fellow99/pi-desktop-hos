@@ -105,13 +105,16 @@ pi-desktop-hos/
 | Node | ≥ 18（构建脚本）；host 侧门禁需要 **Node 22.17.0**（与 Electron 37 内置版本一致） |
 | 同级工程 | `../pi`、`../pi-web`、`../harmonypc-electron`、`../harmonypc-electron-versions` |
 | 运行时产物 | `harmonypc-electron-versions/v37.2.3-20260825.1-release.zip`（内为 `libelectron_138.tar.gz`） |
+| 品牌物料（需求 103） | **父工程** `../assets/`：`logo-1024-with-bg.png`（1024²，不透明）、`logo.png`（200²，含 alpha）、`logo.svg`（矢量）；可用 `--assets` / `PI_ASSETS_DIR` 覆盖 |
+| 图标生成工具 | **`ffmpeg`** 必须在 PATH（`scripts/brand-assets.mjs` 用它生成全部图标；缺失即构建失败） |
 | 签名 | `signing.debug.local.json`（样例见 `signing.debug.local.json.sample`）；ACL 见下 |
 
 ### 四阶段流水线
 
 ```bash
 # ① 收集运行时：v37 归档 → electron/ + web_engine/ + SO + Chromium 资源 + libc++_shared.so
-#    含 prune（删除本应用不用的上游文件）与 overlay（回盖本工程定制）
+#    含 prune（删除本应用不用的上游文件）、overlay（回盖本工程定制）
+#    与阶段 0.5 品牌化（父工程 assets/ → AppScope 图标 + overlay 状态栏字形）
 node scripts/collect-runtime.mjs
 
 # ② 构建 pi-web 生产产物：npm ci → next build → 裁剪平台特定原生件 → 轮换预览密钥
@@ -120,7 +123,9 @@ node scripts/prepare-next.mjs
 # ②′ host 侧门禁：用 Node 22.17.0 跑服务端冒烟（必须全绿才允许上真机）
 node scripts/smoke-node22.mjs
 
-# ③ 组装 pi-dist（pi-web 产物 + @earendil-works/* + pi-agent 资源）+ tar.gz + SHA-256 marker
+# ③ 组装 pi-dist（pi-web 产物 + @earendil-works/* + pi-agent 资源）+ 步骤 2.5 品牌化
+#    （pi-dist 副本内 `Pi Web` → `Pi Desktop`、web 图标/favicon 换物料、并做后置断言）
+#    + tar.gz + SHA-256 marker
 node scripts/collect-pi.mjs
 
 # ④ 投放主进程与预置模板到 resfile
@@ -130,6 +135,11 @@ node scripts/collect-app.mjs
 powershell -ExecutionPolicy Bypass -File scripts\build-debug.ps1     # debug 签名 HAP
 powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release 签名 App Pack
 ```
+
+> 品牌化只作用于**本工程自己的产物**（`AppScope/`、overlay 源、`pi-dist/` 副本），
+> 上游 `../pi`、`../pi-web`、`../harmonypc-electron` **零改动**（`patches/` 仍为空）。
+> 单独重刷品牌物料（改了 `../assets/` 之后）：`node scripts/brand-assets.mjs`。
+> 详见 `specs/103-branding/`、`docs/media-placeholder-icons.md`。
 
 ### 安装与启动
 

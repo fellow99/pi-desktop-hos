@@ -17,6 +17,8 @@ import {
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { applyRepoBranding, applyWebBranding, assertNoBrandLeftovers, loadMaterial } from './brand-assets.mjs';
+
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const piWebRoot = resolve(projectRoot, '../pi-web');
 const piDistDir = join(projectRoot, 'pi-dist');
@@ -365,6 +367,14 @@ print('ok')
 // 顶层 package.json 仍是 pi-web 的（Next 读它解析版本与依赖），node_modules 已按闭包裁剪：
 // Next 不会在运行期校验 node_modules 完整性（它只 require 需要的包），故无需改写依赖清单。
 console.log(`${LOG} 保留 pi-dist/package.json 原样（${piWebPkg.name}@${piWebPkg.version}）`);
+
+// ── 2.5 品牌化（需求 103）─────────────────────────────────────────────
+banner('2.5 品牌化：Pi Desktop 文案 + 物料图标（父工程 assets/）');
+const brandingMaterial = loadMaterial(process.argv.slice(2));
+// 本工程自有图标位（AppScope + overlay 状态栏字形）：与 collect-runtime 阶段 0.5 同一函数（幂等）。
+applyRepoBranding({ material: brandingMaterial });
+// pi-dist 副本：web 图标 + favicon 路由体 + logo.svg + `Pi Web` → `Pi Desktop`（含后置断言）。
+applyWebBranding(piDistDir, { material: brandingMaterial });
 provisionWasmSwc();
 
 // ── 3. 壳预置资源（投放源，不是生效位置）──────────────────────────────
@@ -398,6 +408,11 @@ if (missingSources.length > 0) {
   warn('壳资源不完整（主进程首次启动时会自行写默认 settings.json / mcp.json），加 --strict 可将其视为致命错误');
 }
 
+
+// 品牌化终检必须在**壳预置资源投放之后**：`resources/pi-agent/`（config/ + skills/ + extensions/）
+// 是在步骤 3 才写进 pi-dist 的，那些文件里的旧品牌只能靠这一步兜住（需求 103，FR-brand-004）。
+console.log(`${LOG} 品牌化终检（全树，排除 node_modules）…`);
+assertNoBrandLeftovers(piDistDir);
 // ── 4. 断言 + 统计 ────────────────────────────────────────────────────
 banner('4. 产物断言与统计');
 const serverEntry = REQUIRED_SERVER_ENTRIES.find((rel) => existsSync(join(piDistDir, rel)));

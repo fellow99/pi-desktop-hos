@@ -232,6 +232,14 @@
 | [101-version-0.11.1/plan.md](./101-version-0.11.1/plan.md) | ✅ 已生成 | `versionCode` 编码规则、补丁评估流程、清理边界、构建用 Node 处置、真机取证通道 |
 | [101-version-0.11.1/tasks.md](./101-version-0.11.1/tasks.md) | ✅ 已生成 | T01–T13 + 四个里程碑 |
 | [101-version-0.11.1/test-cases.md](./101-version-0.11.1/test-cases.md) | ✅ 已生成 | 60+ 用例的设计与执行结果（含一次真实阻塞的发生与解除记录） |
+| [102-harmony-js-tools/spec.md](./102-harmony-js-tools/spec.md) | ✅ 已生成 | 27 条 `FR-tool-*` + 15 条 `AC-*`（同名顶替 `bash`/`grep`/`find`；`U1–U12` 上游事实带 `file:line`） |
+| [102-harmony-js-tools/plan.md](./102-harmony-js-tools/plan.md) | ✅ 已生成 | D1–D10：哨兵行协议、帧构造、串行/超时/截断、纯 JS BFS 与上限、生命周期、与内建差异表 |
+| [102-harmony-js-tools/tasks.md](./102-harmony-js-tools/tasks.md) | ✅ 已生成 | T01–T10 + 四个里程碑 + 执行记录（含评审修复轮） |
+| [102-harmony-js-tools/test-cases.md](./102-harmony-js-tools/test-cases.md) | ✅ 已生成 | 前置验证 / 静态单测 / 投放 / 端到端（两轮真实对话）/ 不回归 / 未测，及评审修复轮用例 |
+| [103-branding/spec.md](./103-branding/spec.md) | ✅ 已生成 | 15 条 `FR-brand-*` + 13 条 `AC-*`（文案、Logo/图标物料、禁用版本检测、上游零改动） |
+| [103-branding/plan.md](./103-branding/plan.md) | ✅ 已生成 | D1–D7：文案替换边界、Logo/图标生成策略、上游开关用法、幂等与物料前置、流水线接线 |
+| [103-branding/tasks.md](./103-branding/tasks.md) | ✅ 已生成 | T01–T09 + 四个里程碑 + 执行记录 |
+| [103-branding/test-cases.md](./103-branding/test-cases.md) | ✅ 已生成 | 构建期/包内/真机/负向/不回归用例与结果 |
 | [../docs/鸿蒙环境能力清单-v0.11.1.md](../docs/鸿蒙环境能力清单-v0.11.1.md) | ✅ 已生成 | **环境能力结论的权威文档**（与参考工程 `dsh-desktop-hos` 的 `v0.1.5` 清单结构同构） |
 | [../docs/真机验证记录.md](../docs/真机验证记录.md) | ✅ 已更新 | 追加「轮次 2」：全流水线重建 + 可复现性 + 基本功能 + 能力复测（发现 15–27） |
 | [../patches/README.md](../patches/README.md) | ✅ 已更新 | 追加 `## v0.11.1 基线复核（2026-10-12）`：8 个候选逐条源码核实，结论 0 条 |

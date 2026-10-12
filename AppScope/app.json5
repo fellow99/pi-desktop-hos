@@ -2,8 +2,13 @@
   "app": {
     "bundleName": "org.fellow99.pi.PiDesktop",
     "vendor": "fellow99",
-    "versionCode": 1000,
-    "versionName": "0.1.0",
+    // versionCode 编码规则（见 specs/101-version-0.11.1/plan.md D1）：
+    //   versionCode = major * 10000 + minor * 100 + patch
+    //   0.11.1 -> 0 * 10000 + 11 * 100 + 1 = 1101
+    // 必须严格递增（工程规划 §11.5 G7）：上一版 0.1.0 在骨架期写作 1000，未上架，
+    // 本版取公式值 1101 > 1000，满足递增且从此与 versionName 一一对应。
+    "versionCode": 1101,
+    "versionName": "0.11.1",
     "icon": "$media:app_icon",
     "label": "$string:app_name",
     "configuration": "$profile:configuration",

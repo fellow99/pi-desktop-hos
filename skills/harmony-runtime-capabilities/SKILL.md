@@ -20,7 +20,7 @@ executable**, a **TTY**, or **JIT in a child process** does not.
 |---|---|---|
 | `read` / `write` / `edit` | **available** | pure Node.js |
 | `ls` | **available** | pure Node.js (`fs.readdir`) |
-| `bash` | **available, with caveats** | spawns the system `sh`; see below |
+| `bash` | **hangs on device — avoid** | it spawns the system `sh`, but the child's `exit`/`close` event never arrives on this platform, so a call may never return; see below |
 | `find` | **unavailable** | shells out to the `fd` binary, which this device does not have and which cannot be downloaded |
 | `grep` | **unavailable** | shells out to the `ripgrep` (`rg`) binary, same reason |
 | `powershell` | **absent** | Windows-only tool |
@@ -29,22 +29,34 @@ executable**, a **TTY**, or **JIT in a child process** does not.
 downloaded`. That is expected, not a temporary fault: this build runs with `PI_OFFLINE=1`, so
 Pi never tries to fetch a binary, and the device ships neither `fd` nor `rg`.
 
-**Use `bash` instead of `find`/`grep`.** The toybox applets are the working replacement:
+**There is currently no working replacement for content search.** The toybox applets `find` / `grep`
+(as *shell commands*, reached through the `bash` tool) do exist and would work — but the `bash` tool
+itself is not usable on this platform (see the next section), so you cannot reach them. Concretely:
 
-```
-bash("find . -name '*.ts'")          # not the find tool; the shell command
-bash("grep -rn 'pattern' src")       # not the grep tool; the shell command
-bash("ls -la")
-```
+| want | tool | shell command via `bash` |
+|---|---|---|
+| list a directory | `ls` ✅ | — |
+| find files by name | `find` tool ❌ (needs `fd`) | ⛔ unreachable (bash hangs) |
+| search file contents | `grep` tool ❌ (needs `rg`) | ⛔ unreachable (bash hangs) |
 
-They are ordinary toybox applets, not the model-facing tools, and they work. This is a
-name collision worth remembering: "`find` does not work" is true of the *tool* and false of
-the *command*.
+Practical guidance: **do not claim to have searched.** Enumerate with `ls`, then `read` the specific
+files you need. If a task genuinely requires recursive search, tell the user that this HarmonyOS build
+cannot do it (rather than silently guessing or fabricating results). This is a known gap tracked as
+R14 in `docs/工程规划.md`; the fix decision (wrap/replace the `bash` tool from the shell extension, or
+patch pi's child-process wait) is still open.
+
+> Note on the name collision: "`find` does not work" is true of the **tool** and false of the
+> **command** — but on this build neither is reachable end-to-end, because the only way to run the
+> command is the `bash` tool.
 
 ## Command execution (`bash`)
 
-`bash` is available. It spawns a real shell — **`/system/bin/sh`, which is mksh R59** — using
-the application's own permissions, and it does **not** use a PTY.
+`bash` **should be avoided on this device.** It does spawn a real shell — **`/system/bin/sh`, which is mksh R59** —
+with the application's own permissions and **without** a PTY, but on HarmonyOS the child's `exit`/`close` event
+**never arrives** (the child becomes a zombie), and Pi's shell tool waits for exactly that event with no polling
+and no deadline. Measured on device (`pi-desktop-hos` v0.11.1): the command really runs and stdout comes back,
+then nothing further is observed — so **prefer `read`/`write`/`edit`/`ls`**, and reach for `bash` only when
+nothing else fits, expecting that the call may hang.
 
 What this means in practice:
 
@@ -69,13 +81,15 @@ What this means in practice:
   per-command `workdir` parameter.** State (`cd`, shell variables) does not reliably persist
   between `bash` calls — pass an absolute path or `cd` within the same command line.
 
-### Do not try to launch Node from a subprocess
+### Do not expect a Node script to run in a subprocess
 
-A subprocess cannot run a Node script on this device. `node -e …`, `node script.js`, and
-`npm -v` all die with **`Signal 31 (core dumped)`** — SIGSYS, from seccomp refusing the JIT's
-executable-memory allocation. Note that `node -v` *does* print a version, so the failure only
-appears once real code runs. This is a hard platform limit, not a configuration mistake, and
-it is not lifted by any approval or permission.
+A subprocess cannot usefully run a Node script on this device. Measured on device (`pi-desktop-hos` v0.11.1):
+`node -v` *does* print a version (`v24.13.0`), but `node -e "console.log(1+1)"` produces **no stdout and no
+stderr**, and the process becomes a zombie. The termination cause **could not be read** (the `exit` event never
+arrives, so no signal is observable). The sibling project `dsh-desktop-hos` recorded the same symptom three
+times and reported it as `Signal 31 (core dumped)` / SIGSYS from seccomp refusing the JIT's executable memory —
+that is a **plausible but unproven** explanation here, so treat it as "assume it will not work" rather than as a
+verified signal.
 
 The practical consequence: anything that needs a JavaScript runtime must run **inside the
 agent process** (which is where Pi itself runs), never in a child process.

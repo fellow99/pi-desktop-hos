@@ -30,8 +30,11 @@ const TOOL_FACTS = [
   { name: "ls", ok: true, why: "纯 Node.js（fs.readdir）" },
   {
     name: "bash",
-    ok: true,
-    why: `spawn ${HARMONY_SHELL}（mksh R59），无 PTY；命令不受文件围栏保护`,
+    ok: false,
+    why: `spawn ${HARMONY_SHELL}（mksh R59），无 PTY；命令不受文件围栏保护。`
+      + " ⚠️ 真机实测（0.11.1）：命令确实执行且 stdout 返回，但子进程的 exit/close 事件"
+      + "**永不送达**（进程变僵尸），而 pi 的 shell 工具只等该事件、无轮询也无截止时间"
+      + "→ 调用可能一直挂住。优先用 read/write/edit/ls。",
   },
   { name: "find", ok: false, why: "需要 fd 外部二进制：设备没有，且 PI_OFFLINE=1 禁止下载" },
   { name: "grep", ok: false, why: "需要 ripgrep（rg）外部二进制：同上" },
@@ -76,11 +79,12 @@ function buildReport(ctx) {
     toolTable,
     "",
     "替代做法",
-    "  · 找文件/搜内容用 bash 里的 toybox 命令，而不是 find/grep 工具：",
-    "      bash(\"find . -name '*.ts'\")",
-    "      bash(\"grep -rn 'pattern' src\")",
-    "  · 子进程无法运行 Node 脚本（node -e / node x.js → Signal 31 SIGSYS）。",
-    "    需要 JS 运行时的东西必须在 agent 进程内跑。",
+    "  · ⚠️ 递归搜索在本版本**实质不可用**：toybox 的 find/grep *命令*存在，但唯一调用通道 bash 工具",
+    "    在真机上会挂住（子进程结束事件不送达）→ 端到端不可达。改用 ls 枚举 + read 读具体文件；",
+    "    若任务确实需要递归搜索，如实告知用户「本 HarmonyOS 构建做不到」，不要假装搜过。",
+    "  · 子进程跑 Node 脚本不可用：node -v 会打印版本，但 node -e / node x.js 无任何输出且进程变僵尸，",
+    "    终止原因取不到（exit 事件不来、signalCode 恒 null）。参考工程记为 Signal 31 SIGSYS（seccomp 拦 JIT），",
+    "    在本机属**未经证实**；无论原因，需要 JS 运行时的东西都必须在 agent 进程内跑。",
     "",
     "详见技能 harmony-runtime-capabilities 与 docs/工程规划.md §9.3 / §11。",
   );

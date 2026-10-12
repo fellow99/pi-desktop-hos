@@ -57,8 +57,9 @@ versionCode = major × 10_000 + minor × 100 + patch
 
 `patches/README.md` 已规定**空目录不建**。因此流程是：
 
-1. 逐条复核 README 中「为什么 0 条就够」的 7 个候选（Node 门禁 / 插件闸门 /
-   `node:sqlite` / zstd / 原生模块 / 网络绑定 Host·Origin / symlink·hardlink·chmod）；
+1. 逐条复核 README 中「为什么 0 条就够」的候选，并**追加一条本轮新识别的候选**，共 **8 条**
+   （7 条原有：Node 门禁 / 插件闸门 / `node:sqlite` / zstd / 原生模块 / 网络绑定 Host·Origin /
+   symlink·hardlink·chmod；**新增第 8 条：`pi` 的 `bash` 工具等待子进程结束**）；
 2. 每条给出「上游文件路径」或「本工程实测证据」；
 3. 若复核后仍全部为「不需要」→ 在 `patches/README.md` 追加一节
    **`## v0.11.1 基线复核（2026-10-12）`**，登记逐条结论与复核方式，**不建目录**；
@@ -136,18 +137,22 @@ versionCode = major × 10_000 + minor × 100 + patch
 |---|---|---|---|
 | S0 锚定核对 | 核对 `pi`/`pi-web` 的 tag↔commit↔分支；记录分支列表快照 | `git rev-parse` 输出、分支快照 | FR-ver-001/002/003 |
 | S1 清理 | 按 D4 删中间物；输出命中清单 | 清理日志 | FR-ver-004/005/006 |
-| S2 补丁评估 | 按 D3 复核 7 个候选 | `patches/README.md` 追加复核节 | FR-ver-007/008 |
+| S2 补丁评估 | 按 D3 复核 **8 个候选**（7 条原有 + 1 条新增） | `patches/README.md` 追加复核节 | FR-ver-007/008 |
 | S3 版本号 | `AppScope/app.json5` → `0.11.1`/`1101` + 注释；README、文档头同步 | 改动文件 | FR-ver-009/010/011 |
 | S4 流水线 | collect-runtime → prepare-next → smoke → collect-pi → collect-app → build-debug | 日志 + `electron-default-signed.hap` | FR-ver-012/013 |
 | S5 真机 | 卸载 → 安装 → 启动 → hilog 取证（含 SWC 落点） | 取证输出 | FR-ver-014/015/016 |
 | S5b 基本功能 | API KEY → 工作区 → 一次对话 | 回读证据 + 会话 JSONL 片段 | FR-ver-017…020 |
 | S6 能力复测 | 按参考清单逐项在设备上重测 | 原始输出 | FR-ver-021/022/023 |
 | S7 报告 | 落盘 `docs/鸿蒙环境能力清单-v0.11.1.md` | 报告文件 | FR-ver-024/025 |
-| S8 评审 | `requesting-code-review` 派审 → `receiving-code-review` 处置 | `REVIEW_REPORT.md` | AC-13 |
+| S8 评审 | `requesting-code-review` 派审 → `receiving-code-review` 处置 | `logs/20261012-1/REVIEW_REPORT.md` | AC-13 |
 | S9 提交 | 按 `git-commit` 技能规范提交 | commit | AC-14 |
 
-**日志目录**：`logs/20261012-1/`（当天序号 1）。含 `DEV_CHECKLIST.md`、`REVIEW_REPORT.md`、
-`TEST_CHECKLIST.md`、`TEST_REPORT.md` 与原始取证文本。
+**日志目录**：`logs/20261012-1/`。含 `DEV_CHECKLIST.md`、`TEST_CHECKLIST.md`、`TEST_REPORT.md`、
+`REVIEW_REPORT.md`、`branches-before.txt` / `branches-after.txt`、`T01-anchor.txt`、`T02-clean.txt`、
+`T04-version.txt`、`T05-*.log`、`T06-install.txt`、`T07-*.txt`、`T08-*.txt`、`T09-*.txt`、
+`T10-*.txt`（含 `T10-env-toybox.txt` / `T10-appdomain-fs.txt` / `T10-spawn.txt` /
+`T10-node-subprocess.txt` / `T10-background.txt` / `T10-review-probe-shell.txt` / `T10-toybox-*.txt`）。
+⚠️ 该目录在 `.gitignore` 内，**不入库**；每个探针一次运行一个**独立文件名**（教训见 `docs/真机验证记录.md` 发现 27）。
 
 ## 4. 验证矩阵
 
@@ -155,7 +160,7 @@ versionCode = major × 10_000 + minor × 100 + patch
 |---|---|---|---|
 | L1 静态 | 版本号三处一致、无 `0.1.0` 残留 | grep + 读文件 | 全部命中 |
 | L2 流水线 | 四阶段 + 门禁 | 脚本退出码 | 0 FAIL |
-| L3 构建 | HAP 签名有效、Profile 可侧载 | `hap-sign-tool verify-app` + 脚本断言 | 通过 |
+| L3 构建 | HAP 签名有效、Profile 可侧载 | `hap-sign-tool verify-app`（**本轮已实际执行并留痕**：`T08-signature-verify.txt`）+ 脚本断言 | 通过 |
 | L4 部署 | 安装 + 启动到就绪 | hilog 关键行 | 全部出现 |
 | L5 功能 | API KEY / 工作区 / 对话 | 回读 + JSONL | 3/3 通过 |
 | L6 能力 | 清单逐项 | 设备原样输出 | 每项有结论 |

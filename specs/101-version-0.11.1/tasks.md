@@ -26,9 +26,9 @@ T01 ─┬─ T02 ─ T03 ─┐
 | 项 | 内容 |
 |---|---|
 | 回引 | FR-ver-001、FR-ver-002、FR-ver-003；AC-01、AC-02 |
-| 动作 | ① `pi` 与 `pi-web`：`git rev-parse <tag>`、`git log -1`、`git status --short`、`git branch --show-current`；② 记录**执行前**全部分支列表快照（本工程 + 上游）到 `logs/20261012-1/branches-before.txt` |
+| 动作 | ① `pi` 与 `pi-web`：`git rev-parse <tag>` / `git rev-parse <tag>^{commit}`、`git log -1`、`git status --short`、`git branch --show-current`；② 记录**执行前**与**执行后**全部分支列表快照（本工程 + 上游）到 `logs/20261012-1/branches-before.txt` 与 `branches-after.txt` |
 | 完成判据 | tag↔commit↔分支一致；上游工作树干净；分支快照落盘 |
-| 产出 | `logs/20261012-1/T01-anchor.txt`、`branches-before.txt` |
+| 产出 | `logs/20261012-1/T01-anchor.txt`（含分支快照段）、`branches-before.txt`、`branches-after.txt` |
 
 ### T02 — 清理中间文件 / 临时文件
 
@@ -45,8 +45,8 @@ T01 ─┬─ T02 ─ T03 ─┐
 | 项 | 内容 |
 |---|---|
 | 回引 | FR-ver-007、FR-ver-008；AC-04 |
-| 动作 | 逐条复核 `patches/README.md` 的 7 个候选；用 `grep`/读源码给每条「上游文件路径」证据；结论写回 `patches/README.md` 新增节 `## v0.11.1 基线复核（2026-10-12）` |
-| 完成判据 | 7 条候选逐条有「需要 / 不需要 + 依据」；若全为不需要则**不建** `patches/v0.11.1/` |
+| 动作 | 逐条复核 `patches/README.md` 的 **8 个候选**（7 条原有 + 1 条本轮新增：`pi` 的 `bash` 工具等待子进程结束）；用 `grep`/读源码给每条「上游文件路径」证据；结论写回 `patches/README.md` 新增节 `## v0.11.1 基线复核（2026-10-12）` |
+| 完成判据 | **8 条候选**逐条有「需要 / 不需要 + 依据」；全部不需要则**不建** `patches/v0.11.1/`（候选 8 为「需要处置、按 R14 首选零补丁路线本轮不补」） |
 | 产出 | `patches/README.md`（更新） |
 
 ### T04 — 版本号 0.1.0 → 0.11.1
@@ -113,7 +113,7 @@ T01 ─┬─ T02 ─ T03 ─┐
 | 回引 | FR-ver-021、FR-ver-022、FR-ver-023；AC-12 |
 | 动作 | 按 `test-cases.md` 的能力项清单（源自 `dsh-desktop-hos/docs/鸿蒙环境能力清单-v0.1.5.md` 与 `toybox命令清单.md`）在设备上逐项执行，记录**原样输出** |
 | 完成判据 | 每项有结论（✅/⚠️/❌ + 原因）；toybox 命令逐项有判定 |
-| 产出 | `logs/20261012-1/T10-capability.txt`、`T10-toybox.txt` |
+| 产出 | `logs/20261012-1/` 下的 `T10-env-toybox.txt`、`T10-toybox-applets.txt`、`T10-toybox-links.txt`、`T10-toybox-analysis.txt`、`T10-sysbin-listing.txt`、`T10-appdomain-fs.txt`、`T10-spawn.txt`、`T10-node-subprocess.txt`、`T10-background.txt`、`T10-0-reboot.txt`、`T10-0-hilog-second-start.txt`、`T10-review-probe-shell.txt`、`T10-crash-evidence.txt`、`T10-restart-window.txt` |
 | 风险 | Git-Bash 路径改写 → 全程 `MSYS_NO_PATHCONV=1` |
 
 ### T11 — 能力报告落盘

@@ -1,147 +1,199 @@
-# Pi Desktop（HarmonyOS 版）
-
-> 基于「Electron-on-鸿蒙」运行时（[harmonypc-electron](https://atomgit.com/jianguoxu/harmonypc-electron)，
-> Electron **37.2.3** / Node **22.17.0** / ABI **v138**）的 [Pi](https://pi.dev) 桌面封装 ——
-> 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），
-> 渲染层同源加载该服务端提供的 Pi Web UI，界面 100% 复用上游，不 fork 前端。
-
-**版本**：`0.11.1`（**已构建、已真机签名部署验证**，见 [docs/真机验证记录.md](docs/真机验证记录.md)）
-· `versionCode` `1101` · **上游基线**：`pi` **v1.1.0** + `pi-web` **v0.11.1**
-· **应用名 / 包名**：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
-
-完整工程规划与最终实现记录见 **[docs/工程规划.md](docs/工程规划.md)**。
+[中文](./README_zh.md) | English
 
 ---
 
-## 这是什么
+# Pi Desktop (HarmonyOS)
 
-`Pi` 是一个最小、可扩展的 agent harness：扩展、技能、提示模板、主题都可替换，官方提供
-CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界面（Next.js 应用），
-**一个 Node 进程同时提供 SPA 与 `/api/*`**，agent 在该进程内创建。
+> A [Pi](https://pi.dev) desktop wrapper built on the "Electron-on-HarmonyOS" runtime
+> ([harmonypc-electron](https://atomgit.com/jianguoxu/harmonypc-electron),
+> Electron **37.2.3** / Node **22.17.0** / ABI **v138**) — it hosts **Pi Web** (the Next server
+> from `pi-web`, including the agent and `/api/*`) inside the Electron main process on a
+> HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
+> The UI is reused 100% from upstream; the frontend is not forked.
 
-本工程把这一套封装进鸿蒙原生桌面壳（Electron-on-鸿蒙运行时），让它在鸿蒙 PC / 平板上
-像一等公民桌面应用一样运行。它**不是**「包一层浏览器指向 localhost」的粗壳。
+**Version**: `0.11.1` / `versionCode` `1101` (**built and verified via signed on-device deployment**,
+see [docs/真机验证记录.md](docs/真机验证记录.md))
+· **Upstream baseline**: `pi` **v1.1.0** (`Branch_v1.1.0`) + `pi-web` **v0.11.1** (`Branch_v0.11.1`)
+· **Runtime**: Electron **37.2.3** (Node **22.17.0** / ABI **v138**; on the HarmonyOS side via the `harmonypc-electron` runtime)
+· **App name / bundle name**: `Pi Desktop` / `org.fellow99.pi.PiDesktop`
 
-> **非官方声明**：本工程非 Pi / Pi Web 团队构建，与上游作者无隶属关系，未获其背书。
-> `Pi` 与 `Pi Web` 均为 MIT 许可的上游开源项目，本工程仅是其桌面形态在 HarmonyOS 上的
-> 第三方移植。
+The full engineering plan and delivery record live in **[docs/工程规划.md](docs/工程规划.md)**;
+the **authoritative** document for device-side capability conclusions is
+**[docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md)** (with revision sections
+**REV-1** / **REV-2**; where they conflict with the earlier sections, the revisions win).
 
-## 核心设计
+---
+
+## What this is
+
+`Pi` is a minimal, extensible agent harness: extensions, skills, prompt templates and themes
+are all replaceable, and it offers four official integration entry points (CLI / RPC / JSON /
+SDK). `Pi Web` is its local browser UI (a Next.js app) where **a single Node process serves
+both the SPA and `/api/*`**, and the agent is created inside that process.
+
+This project wraps all of that in a native HarmonyOS desktop shell (the Electron-on-HarmonyOS
+runtime) so it runs like a first-class desktop application on HarmonyOS PCs and tablets. It is
+**not** a thin shell that "wraps a browser pointed at localhost".
+
+> **Unofficial notice**: This project is not built by the Pi or Pi Web teams, has no
+> affiliation with the upstream authors, and is not endorsed by them. Both `Pi` and `Pi Web`
+> are MIT-licensed upstream open-source projects; this project is merely a third-party port of
+> their desktop form factor to HarmonyOS.
+
+## Delivered requirements
+
+Requirements are organized under `specs/NNN-<name>/`, delivered in pairs (`spec.md` for
+requirements and acceptance, `plan.md` for the design) with `tasks.md` + `test-cases.md` added
+for more complex ones.
+
+| Requirement | Spec directory | Deliverable | On-device round |
+|---|---|---|---|
+| `001-host` | [specs/001-host/](specs/001-host/) | Host: environment wiring, in-process Next server, HTTP-polling readiness check, random password and credential injection | Round 1 |
+| `101-version-0.11.1` | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | Version convergence to `0.11.1` / `1101`; full-pipeline rebuild after cleaning intermediates with byte-level reproducibility; capability inventory produced | Rounds 2, 2b |
+| `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | **Pure-JS extensions** shipped in the HAP take over `bash` / `find` / `grep` under the same tool names; **zero upstream or patch changes** | Rounds 3, 3b, 3c |
+| `103-branding` | [specs/103-branding/](specs/103-branding/) | UI branding switched to `Pi Desktop`, Logo/icons generated from parent-project assets, new-version check disabled (zero upstream changes) | Round 4 |
+
+> **§10** of `specs/README.md` lists the documentation status and the four-part document set for
+> the table above.
+
+## Core design
 
 ```
-┌─ 鸿蒙 HAP（pi-desktop-hos）──────────────────────────────────────────────┐
-│  electron 模块（entry）：3 个原生 SO + libc++_shared.so + Ability 装配    │
-│  web_engine 模块（HAR）：ArkTS 桥接层 + resfile 承载应用产物              │
-│   ┌─ Electron 主进程（Node 22.17.0）─────────────────────────────────┐  │
-│   │  main.js: 环境装配 → 解压 pi-dist → 进程内起 Next 服务器 → 建窗    │  │
-│   │    ├─ Next 服务器 0.0.0.0:<随机端口>：SPA + /api/* + SSE          │  │
-│   │    ├─ agent 会话（pi SDK，进程内）                                │  │
-│   │    └─ 就绪后 loadURL(http://<局域网IP>:<port>/)                   │  │
-│   └──────────────────────▲───────────────────────────────────────────┘  │
-│                          │ 同源（无 CORS、无需 Host/Origin 头改写）       │
-│   ┌──────────────────────┴───────────────────────────────────────────┐  │
-│   │ 渲染进程：Electron BrowserWindow（Chromium）                       │  │
-│   │   标准 Pi Web UI（fetch /api/* + SSE /api/agent/[id]/events）      │  │
-│   └──────────────────────────────────────────────────────────────────┘  │
+┌─ HarmonyOS HAP (pi-desktop-hos) ─────────────────────────────────────────┐
+│  electron module (entry): 3 native SOs + libc++_shared.so + Ability setup │
+│  web_engine module (HAR): ArkTS bridge layer + resfile carrying app assets│
+│   ┌─ Electron main process (Node 22.17.0) ───────────────────────────┐    │
+│   │  main.js: env wiring → extract pi-dist → in-process Next server  │    │
+│   │           → create window                                        │    │
+│   │    ├─ Next server 0.0.0.0:<random port>: SPA + /api/* + SSE       │    │
+│   │    ├─ agent session (pi SDK, in-process)                          │    │
+│   │    └─ when ready, loadURL(http://<LAN IP>:<port>/)                │    │
+│   └──────────────────────▲───────────────────────────────────────────┘   │
+│                          │ same-origin (no CORS, no Host/Origin rewrite)  │
+│   ┌──────────────────────┴───────────────────────────────────────────┐   │
+│   │ Renderer: Electron BrowserWindow (Chromium)                       │   │
+│   │   standard Pi Web UI (fetch /api/* + SSE /api/agent/[id]/events)  │   │
+│   └──────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-关键点：
+Key points:
 
-- **服务端在主进程进程内**，不引入 Node 子进程 —— 同时规避「应用域子进程 JIT 被 seccomp 拦
-  （`Signal 31`）」「子进程 exit 事件不可观测」「每次 spawn 泄漏一个僵尸」三个平台问题。
-- **渲染层同源加载**：零 CORS、零自定义协议、零 preload 桥、零 IPC 载体。
-- **不需要 Host/Origin 头改写**：pi-web 的请求信任围栏放行任意 IP 字面量，同源请求天然
-  通过 Origin 校验（这一点比同型工程 `dsh-desktop-hos` 少一整套补丁）。
-- **补丁集为 0 条必需**：插件机制「仅本地源」由上游三个现成机制覆盖（见
-  [patches/README.md](patches/README.md)）。
-- **上架合规的低成本项已前置**：不声明浏览器语义（`browsable` / `viewData`），
-  所有外部网页统一走 ArkWeb 外链页。
+- **The server runs inside the main process**, with no Node child process — this sidesteps
+  three platform problems at once: "JIT in an app-domain child process is blocked by seccomp",
+  "a child's `exit`/`close` events are never observable", and "every spawn leaks a zombie".
+- **Same-origin renderer**: zero CORS, zero custom protocol, zero preload bridge, zero IPC
+  carrier.
+- **No Host/Origin header rewriting needed**: pi-web's request trust fence admits any IP
+  literal, so same-origin requests pass the Origin check naturally (this saves an entire set of
+  patches compared with the sibling project `dsh-desktop-hos`).
+- **Command execution and file search are taken over by pure-JS extensions shipped in the HAP**
+  (requirement 102): `bash` uses a resident `/system/bin/sh` plus a random sentinel line, and
+  decides completion **from stdout alone**, never waiting for process events that never arrive;
+  `find` / `grep` use a pure-JS directory walk with **zero `fd`/`rg` and zero child processes**.
+  This is fully transparent to the model and to pi-web presets.
+- **Zero patches are required**: all 8 registered candidates are covered by existing upstream
+  mechanisms or by the shell extensions (see [patches/README.md](patches/README.md)).
+- **Branding is applied to the upstream artifact copy** (requirement 103): UI text, the Logo and
+  every icon slot use parent-project assets, and the home page's new-version check is disabled;
+  `pi` / `pi-web` / `harmonypc-electron` are **untouched**.
+- **Low-cost app-store compliance is front-loaded**: no browser semantics are declared
+  (`browsable` / `viewData`); all external web pages go through the ArkWeb external-link page.
 
-## 目录结构
+## Directory layout
 
-本工程与 4 个同级工程**并行存放**（`pi-workspace` 是 submodule 容器仓库）：
+This project lives **side by side with its sibling projects** (`pi-workspace` is a submodule
+container repository):
 
 ```
 pi-workspace/
-├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.1.0
-├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.11.1
-├── harmonypc-electron/                 # [submodule] Electron-on-鸿蒙运行时（shell + manifest）
-├── harmonypc-electron-versions/        # （普通目录，gitignore）v37 归档 + 原生模块材料
-└── pi-desktop-hos/                     # [submodule] ← 本工程
+├── pi/                                 # [submodule] upstream host + SDK, pinned to Branch_v1.1.0
+├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.11.1
+├── harmonypc-electron/                 # [submodule] Electron-on-HarmonyOS runtime (shell + manifest)
+├── harmonypc-electron-versions/        # (plain dir, gitignored) v37 archive + native module material
+├── assets/                             # parent-project brand assets (logo-1024-with-bg.png / logo.png / logo.svg)
+└── pi-desktop-hos/                     # [submodule] ← this project
 ```
 
-本工程内部：
+Inside this project:
 
 ```
 pi-desktop-hos/
-├── AppScope/                    # 应用级配置（bundleName / 版本 / 图标 / label）
-├── electron/                    # entry 模块（由 collect-runtime 投放；libs/ 不入库）
-├── web_engine/                  # HAR 桥接层 + resfile 承载应用产物（由 collect-runtime 投放）
-├── src-main/                    # Electron 主进程源码（main.js + tar-extract.js）
-├── scripts/                     # 四阶段构建流水线 + host 侧门禁 + 签名构建脚本
-├── runtime-overlays/            # 「copy 后回盖」白名单（保护本工程定制不被覆盖）
-├── patches/                     # 上游补丁集（本版本为空，见该目录 README）
-├── config/                      # 运行时预置模板（settings.json / mcp.json）
-├── extensions/                  # 壳专用 pi 扩展
-├── skills/                      # 壳专用 pi 技能
-├── specs/                       # 模块规格（NNN-name/{spec.md,plan.md}）
-└── docs/                        # 工程规划等文档
+├── AppScope/                    # app-level config (bundleName / version / icons / label)
+├── electron/                    # entry module (populated by collect-runtime; libs/ is not committed)
+├── web_engine/                  # HAR bridge layer + resfile carrying app assets (populated by collect-runtime)
+├── src-main/                    # Electron main-process sources (main.js + tar-extract.js)
+├── scripts/                     # five-stage build pipeline + host-side gate + branding + signing scripts
+├── runtime-overlays/            # "copy then overlay" whitelist (protects our customizations from being overwritten)
+├── patches/                     # upstream patch set (empty for this version; see that directory's README)
+├── config/                      # runtime preset templates (settings.json / mcp.json)
+├── extensions/                  # shell-specific pi extensions (pure-JS bash / find / grep)
+├── skills/                      # shell-specific pi skills
+├── specs/                       # module and version-requirement specs (NNN-name/{spec,plan,tasks,test-cases})
+└── docs/                        # engineering plan, capability inventory, device-verification records, etc.
 ```
 
-**为什么 `electron/` 与 `web_engine/` 由脚本生成**：它们来自同级 `harmonypc-electron` 的
-运行时外壳（ArkTS 代码 + 原生 SO + Chromium 资源）。hvigor 只构建**物理存在**于
-`build-profile.json5` 模块列表里的目录，且 HAR 的 `file:` 依赖**不带 `.so` 与 `resfile`**，
-所以运行时必须由 `collect-runtime.mjs` 物理拷贝进来。本工程只提交**配置 + overlay 定制**，
-不提交上游副本 —— 上游更新时重跑脚本即可，不会产生"我们改了上游文件但没人知道"的漂移。
+**Why `electron/` and `web_engine/` are script-generated**: they come from the runtime shell in
+the sibling `harmonypc-electron` (ArkTS code + native SOs + Chromium resources). hvigor only
+builds directories that **physically exist** in the module list of `build-profile.json5`, and a
+HAR's `file:` dependency **does not carry `.so` or `resfile`** — so the runtime must be copied in
+physically by `collect-runtime.mjs`. This project commits only **configuration + overlays**;
+upstream copies are re-collected by the scripts, so re-running the scripts after an upstream
+update cannot produce "someone edited an upstream file and nobody knew" drift. (The `resfile`
+drop-in artifacts are currently **committed**, contradicting the previous README's wording; see
+risk R17.)
 
-## 构建
+## Build
 
-### 前置（一次性）
+### Prerequisites (one-time)
 
-| 项 | 要求 |
+| Item | Requirement |
 |---|---|
-| 工具链 | DevEco Studio 6.x + HarmonyOS SDK（API 17 起，targetSdk `6.1.1(24)`）+ hvigorw + ohpm |
-| Node | ≥ 18（构建脚本）；host 侧门禁需要 **Node 22.17.0**（与 Electron 37 内置版本一致） |
-| 同级工程 | `../pi`、`../pi-web`、`../harmonypc-electron`、`../harmonypc-electron-versions` |
-| 运行时产物 | `harmonypc-electron-versions/v37.2.3-20260825.1-release.zip`（内为 `libelectron_138.tar.gz`） |
-| 品牌物料（需求 103） | **父工程** `../assets/`：`logo-1024-with-bg.png`（1024²，不透明）、`logo.png`（200²，含 alpha）、`logo.svg`（矢量）；可用 `--assets` / `PI_ASSETS_DIR` 覆盖 |
-| 图标生成工具 | **`ffmpeg`** 必须在 PATH（`scripts/brand-assets.mjs` 用它生成全部图标；缺失即构建失败） |
-| 签名 | `signing.debug.local.json`（样例见 `signing.debug.local.json.sample`）；ACL 见下 |
+| Toolchain | DevEco Studio 6.x + HarmonyOS SDK (API 17+, targetSdk `6.1.1(24)`) + hvigorw + ohpm |
+| Node | ≥ 18 (build scripts); the host-side gate needs **Node 22.17.0** (matching Electron 37's bundled version) |
+| Sibling projects | `../pi`, `../pi-web`, `../harmonypc-electron`, `../harmonypc-electron-versions` |
+| Runtime artifact | `harmonypc-electron-versions/v37.2.3-20260825.1-release.zip` (contains `libelectron_138.tar.gz`) |
+| Brand assets (req. 103) | **Parent project** `../assets/`: `logo-1024-with-bg.png` (1024², opaque), `logo.png` (200², with alpha), `logo.svg` (vector); overridable with `--assets` / `PI_ASSETS_DIR` |
+| Icon generation tool | **`ffmpeg`** must be on PATH (`scripts/brand-assets.mjs` uses it to generate all icons; missing means the build fails) |
+| Signing | `signing.debug.local.json` (see the sample `signing.debug.local.json.sample`); ACLs below |
 
-### 四阶段流水线
+### Five-stage pipeline
 
 ```bash
-# ① 收集运行时：v37 归档 → electron/ + web_engine/ + SO + Chromium 资源 + libc++_shared.so
-#    含 prune（删除本应用不用的上游文件）、overlay（回盖本工程定制）
-#    与阶段 0.5 品牌化（父工程 assets/ → AppScope 图标 + overlay 状态栏字形）
+# 1. Collect the runtime: v37 archive → electron/ + web_engine/ + SOs + Chromium resources + libc++_shared.so
+#    Includes prune (remove upstream files this app does not use) and overlay (re-apply our customizations)
+#    plus stage 0.5 branding (parent assets/ → AppScope icons + overlay status-bar glyph)
 node scripts/collect-runtime.mjs
 
-# ② 构建 pi-web 生产产物：npm ci → next build → 裁剪平台特定原生件 → 轮换预览密钥
-node scripts/prepare-next.mjs
+# 2. Build the pi-web production output: npm ci → next build → prune platform-specific natively → rotate preview secret
+node scripts/prepare-next.mjs --node <path to node22>
 
-# ②′ host 侧门禁：用 Node 22.17.0 跑服务端冒烟（必须全绿才允许上真机）
+# 2'. Host-side gate: run the server smoke test under Node 22.17.0 (must be all green before deploying to a device)
 node scripts/smoke-node22.mjs
 
-# ③ 组装 pi-dist（pi-web 产物 + @earendil-works/* + pi-agent 资源）+ 步骤 2.5 品牌化
-#    （pi-dist 副本内 `Pi Web` → `Pi Desktop`、web 图标/favicon 换物料、并做后置断言）
+# 3. Assemble pi-dist (pi-web output + @earendil-works/* + pi-agent resources) + step 2.5 branding
+#    (inside the pi-dist copy: `Pi Web` → `Pi Desktop`, web icons/favicon swapped to the assets, with post-assertions)
 #    + tar.gz + SHA-256 marker
 node scripts/collect-pi.mjs
 
-# ④ 投放主进程与预置模板到 resfile
+# 4. Drop the main process and preset templates into resfile
 node scripts/collect-app.mjs
 
-# ⑤ 构建 + 签名（详细参数见 scripts/build-hap.ps1 头部注释）
-powershell -ExecutionPolicy Bypass -File scripts\build-debug.ps1     # debug 签名 HAP
-powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release 签名 App Pack
+# 5. Build + sign (see the header comment of scripts/build-hap.ps1 for details)
+powershell -ExecutionPolicy Bypass -File scripts\build-debug.ps1     # debug-signed HAP
+powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release-signed App Pack
 ```
 
-> 品牌化只作用于**本工程自己的产物**（`AppScope/`、overlay 源、`pi-dist/` 副本），
-> 上游 `../pi`、`../pi-web`、`../harmonypc-electron` **零改动**（`patches/` 仍为空）。
-> 单独重刷品牌物料（改了 `../assets/` 之后）：`node scripts/brand-assets.mjs`。
-> 详见 `specs/103-branding/`、`docs/media-placeholder-icons.md`。
+> Branding only touches **this project's own artifacts** (`AppScope/`, overlay sources, the
+> `pi-dist/` copy); upstream `../pi`, `../pi-web` and `../harmonypc-electron` are **untouched**
+> (`patches/` is still empty). To regenerate brand assets alone (after changing `../assets/`):
+> `node scripts/brand-assets.mjs`; missing assets cause a **hard failure**, never a silent
+> downgrade. See `specs/103-branding/` and `docs/media-placeholder-icons.md`.
 
-### 安装与启动
+Host-side regression test (runs with no device; covers the pure-JS search extension):
+`node scripts/test-harmony-tools.mjs`.
+
+### Install and launch
 
 ```bash
 hdc uninstall org.fellow99.pi.PiDesktop
@@ -149,69 +201,95 @@ hdc app install -r electron/build/default/outputs/default/electron-default-signe
 hdc shell aa start -a EntryAbility -b org.fellow99.pi.PiDesktop
 ```
 
-> ⚠️ **发布签名的包无法侧载**（会报 `signature verification failed due to not trusted app source`）。
-> 真机回归请用 `-BuildMode release -SignMode debug`；release 签名的包只用于 AppGallery 提交。
+> ⚠️ **Release-signed packages cannot be sideloaded** (they fail with
+> `signature verification failed due to not trusted app source`). For on-device regression use
+> `-BuildMode release -SignMode debug`; release-signed packages are meant only for AppGallery
+> submission. **Make sure the screen is unlocked before deploying** (a lock screen hard-blocks
+> `aa start`).
 
-### 真机取证
+### On-device forensics
 
 ```bash
-hdc shell "hilog -x | grep pi-desktop"     # 应用日志（主进程与 ArkTS 层共用该 tag）
-hdc shell aa dump -a                       # 观察 Ability 状态
-hdc fport tcp:19229 tcp:9229               # CDP 调试（仅 debug 构建；生产必须移除 --inspect）
+hdc shell "hilog -x | grep pi-desktop"     # app log (shared tag for the main process and the ArkTS layer)
+hdc shell aa dump -a                       # inspect Ability state
+hdc fport tcp:19229 tcp:9229               # CDP debugging (debug builds only; production must drop --inspect)
 ```
 
-## 权限
+> ⚠️ `hdc` occasionally reports `need connect-key`, and under Git-Bash it rewrites device-side
+> POSIX path arguments (use `MSYS_NO_PATHCONV=1`); `fport` mappings have an unstable lifetime,
+> so establishing and consuming a forward should be done within a single command where possible.
 
-**必须申请（ACL，受限权限）**：`ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY`
-（`system_basic` / since API 14 / 仅平板 + 2in1 / **须经 AGC 申请 ACL**）—— 启用
-Electron/V8 的 JIT，引擎必需，不可删除。
+## Permissions
 
-**开放权限**（写进 `requestPermissions` 即安装时授予）：`INTERNET`、`GET_NETWORK_INFO`、
-`KEEP_BACKGROUND_RUNNING`、`READ_WRITE_DOCUMENTS_DIRECTORY`、`READ_WRITE_DOWNLOAD_DIRECTORY`、
-`FILE_ACCESS_PERSIST`。
+**Must be requested (ACL, restricted permission)**:
+`ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY` (`system_basic` / since API 14 / tablet +
+2in1 only / **requires an ACL application through AGC**) — it enables Electron/V8's JIT, is
+required by the engine, and cannot be removed.
 
-**本工程不需要**：二进制证书（AGC `certType: 4`，不随包分发自有 ELF）、
-`ALLOW_EXTERNAL_NATIVE_CODE`、`READ_WRITE_DESKTOP_DIRECTORY`（`system_basic`，上架障碍）。
+**Open permissions** (granted at install time once listed in `requestPermissions`):
+`INTERNET`, `GET_NETWORK_INFO`, `KEEP_BACKGROUND_RUNNING`,
+`READ_WRITE_DOCUMENTS_DIRECTORY`, `READ_WRITE_DOWNLOAD_DIRECTORY`, `FILE_ACCESS_PERSIST`.
 
-ACL 提交要点与上架前置清单见 [docs/工程规划.md](docs/工程规划.md) §11.4、§11.5。
+**Not needed by this project**: binary certificates (AGC `certType: 4`; we ship no ELF of our
+own), `ALLOW_EXTERNAL_NATIVE_CODE`, `READ_WRITE_DESKTOP_DIRECTORY` (`system_basic`, an app-store
+obstacle).
 
-## 能力边界（设备侧已知限制）
+ACL submission notes and the app-store pre-flight checklist are in
+[docs/工程规划.md](docs/工程规划.md) §11.4, §11.5.
 
-| 能力 | 状态 | 原因 |
+## Capability boundaries (known device-side limitations)
+
+> The table below summarizes [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md);
+> that file is the **sole authority** on device-side capabilities (§A–§D are the as-measured
+> state for requirement 101, **REV-1 / REV-2** are later revisions, and the revisions win where
+> they conflict).
+
+| Capability | Status | Reason |
 |---|---|---|
-| 主 UI（Pi Web） | ✅ | 进程内服务器 + Chromium 渲染 |
-| 会话持久化 / 续接 | ✅ | JSONL 落沙箱 `pi-agent/sessions/` |
-| 文件读写 / 编辑 / 列目录 | ✅ | 纯 Node.js |
-| 命令执行（`bash` 工具） | ✅ | spawn 系统 `/system/bin/sh`（mksh R59），无 PTY |
-| 文件查找 / 内容搜索（`find`/`grep` 工具） | ❌ | 需 `fd`/`rg` 外部二进制，设备没有且本构建禁止下载；改用 `bash` 里的 toybox 命令 |
-| 终端面板 / PTY | ❌ | SELinux 拒绝 `forkpty`/`openpty`；`node-pty` 无 aarch64-ohos 产物 |
-| `git` 集成 / worktree | ❌ | 设备无 `git` 二进制 |
-| 插件联网安装 | ❌ | PL1「仅本地源」；设备无 npm/git |
-| MCP stdio 服务器 | ⚠️ | 需 spawn 子进程；HTTP / streamable 类可用 |
-| 子进程内跑 Node 脚本 | ❌ | seccomp 拒绝 JIT 可执行内存（`Signal 31`） |
+| Main UI (Pi Desktop Web) | ✅ | In-process server + Chromium rendering |
+| Session persistence / resume | ✅ | JSONL written under the sandbox `pi-agent/sessions/` |
+| File read / write / edit / list | ✅ | Pure Node.js |
+| Command execution (the `bash` tool) | ✅ | Replaced under the same name by `extensions/harmony-exec.js`: a resident non-PTY `/system/bin/sh` (mksh R59) + a random sentinel line; completion is judged from stdout alone and **never waits** for `exit`/`close` |
+| File lookup / content search (the `find` / `grep` tools) | ✅ | Replaced under the same names by `extensions/harmony-search.js`: a pure-JS walk with **zero `fd`/`rg` and zero child processes**; `rg`/`fd` are still absent, but no longer needed |
+| Terminal panel / PTY | ❌ | `node-pty` ships only `darwin-arm64`/`win32-arm64` prebuilds (**proven L2**); whether the kernel also refuses PTY is **not disproven** |
+| `git` integration / worktree | ❌ | No `git` binary on the device, and no way to install one |
+| Network plugin installation | ❌ | PL1 "local sources only" + `PI_OFFLINE=1`; no npm/git on the device |
+| MCP stdio servers | ⚠️ | The blocking root cause (child-exit events never delivered) was lifted with the `bash` takeover, and the channel was verified at the transport level; **no real MCP server has been attached** (`config/mcp.json` is empty) |
+| Running Node scripts in a child process | ❌ | `node -e` produces no stdout/stderr and the process becomes a zombie; the **termination cause could not be read** |
+| User directories (Desktop/Documents/Download) read/write | ❌ | OS authorization gate; requires granting access in *Settings → Apps → Allow access* and **restarting the app** — in-app approval does not change this |
+| Symbolic links (`symlink`) | ❌ | Refused in **both** the app domain and the shell domain (`EACCES` / `Permission denied`) |
+| Auto-start at boot / background residency | ❌ / ⚠️ | Read-only interfaces and no public setter; minimizing under 2in1 does not produce a real background state |
+| File fencing for commands | ⚠️ | The `bash` child runs as the application identity (uid `20020215`) and therefore **bypasses pi's file-approval flow**; the only mitigation is a skill-level constraint |
 
-详见 [skills/harmony-runtime-capabilities/SKILL.md](skills/harmony-runtime-capabilities/SKILL.md)
-（面向模型的运行期摘要）与 [docs/工程规划.md](docs/工程规划.md) §9.3（完整降级表与根因分层）。
+See [skills/harmony-runtime-capabilities/SKILL.md](skills/harmony-runtime-capabilities/SKILL.md)
+(the runtime digest shown to the model) and [docs/工程规划.md](docs/工程规划.md) §9.3
+(hardening table) and §11 (risks and open questions).
 
-## 文档
+## Documentation
 
-| 文档 | 内容 |
+| Document | Contents |
 |---|---|
-| [docs/工程规划.md](docs/工程规划.md) | **工程规划**：做什么、怎么做、按什么顺序做、有哪些风险 |
-| [specs/README.md](specs/README.md) | 模块规格索引与文档规范 |
-| [specs/001-host/](specs/001-host/) | Host 宿主（环境装配 / 进程内服务器 / 就绪判定） |
-| [runtime-overlays/README.md](runtime-overlays/README.md) | 运行时定制清单与 prune/overlay 机制 |
-| [patches/README.md](patches/README.md) | 为什么本版本补丁集为空 |
-| [config/README.md](config/README.md) | 运行时预置配置的每个键为什么这样设 |
-| [extensions/README.md](extensions/README.md) | 壳专用扩展机制与编写约定 |
-| [skills/README.md](skills/README.md) | 壳专用技能格式与维护纪律 |
+| [docs/工程规划.md](docs/工程规划.md) | **Engineering plan (source of truth)**: what to build, how, in what order, and the risks |
+| [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md) | **Authoritative** device-capability inventory (capability × status × root-cause layer L1–L4 + evidence + REV-1/REV-2) |
+| [docs/真机验证记录.md](docs/真机验证记录.md) | Per-round device-verification environment, steps and conclusions (rounds 0–4) |
+| [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | Icon assets and generation rules (requirement 103) |
+| [specs/README.md](specs/README.md) | Spec index, documentation rules, and the version-requirement (101+) list |
+| [specs/001-host/](specs/001-host/) | Host (environment wiring / in-process server / readiness check) |
+| [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | Version convergence to 0.11.1 (spec / plan / tasks / test-cases) |
+| [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | Pure-JS tool extensions: `bash` / `find` / `grep` taken over under the same names |
+| [specs/103-branding/](specs/103-branding/) | Branding: text / Logo / icon assets / version-check disabled |
+| [runtime-overlays/README.md](runtime-overlays/README.md) | Runtime customization list and the prune/overlay mechanism (23 files) |
+| [patches/README.md](patches/README.md) | Why this version's patch set is empty (8 candidates verified against source, one by one) |
+| [config/README.md](config/README.md) | Why every runtime preset key is set the way it is |
+| [extensions/README.md](extensions/README.md) | Shell-extension mechanics, authoring conventions, and the same-name takeover |
+| [skills/README.md](skills/README.md) | Shell-skill format and maintenance discipline |
 
-## 相关工程
+## Related projects
 
-- [harmonypc-electron](https://atomgit.com/jianguoxu/harmonypc-electron)（同级 `../harmonypc-electron`）—— Electron-on-鸿蒙运行时
-- [pi](https://github.com/earendil-works/pi)（同级 `../pi`）—— 被封装宿主
-- [pi-web](https://github.com/agegr/pi-web)（同级 `../pi-web`）—— 被复用 UI 与服务端
+- [harmonypc-electron](https://atomgit.com/jianguoxu/harmonypc-electron) (sibling `../harmonypc-electron`) — the Electron-on-HarmonyOS runtime
+- [pi](https://github.com/earendil-works/pi) (sibling `../pi`) — the wrapped host
+- [pi-web](https://github.com/agegr/pi-web) (sibling `../pi-web`) — the reused UI and server
 
-## 许可证
+## License
 
 MIT

@@ -87,7 +87,7 @@
 
 ---
 
-## 四、构建与配置模块（005-006）
+## 四、构建与配置模块（005-006、009）
 
 ### 005 — 构建编排（build-pipeline）
 
@@ -99,14 +99,27 @@
 |---|---|
 | `005-build-pipeline/{spec.md,plan.md}` | ⬜ 待生成（Phase 0 出口前） |
 
-### 006 — 运行时配置（runtime-config）
+### 006 — 签名与应用身份（signing-identity）
 
+> bundleName 与显示名多处同步、签名材料**仅内存注入**（`hvigorfile.ts`）、**ACL 归属**
+> （按本包名申请 3 项受限权限：`kernel.ALLOW_WRITABLE_CODE_MEMORY` / `READ_PASTEBOARD` /
+> `READ_WRITE_DESKTOP_DIRECTORY`）、`versionCode` 规则与上架身份类合规守卫。
+> 权限声明面对标 `dsh-desktop-hos`；申请文案落 [`../docs/ACL申请清单.md`](../docs/ACL申请清单.md)。
+
+| 文档 | 状态 |
+|---|---|
+| [006-signing-identity/spec.md](./006-signing-identity/spec.md) | ✅ 已生成 |
+| [006-signing-identity/plan.md](./006-signing-identity/plan.md) | ✅ 已生成 |
+
+### 009 — 运行时配置（runtime-config）
+
+> 原规划为 006；因 006 改分配给「签名与应用身份」而顺延到 009，职责不变：
 > `config/` 预置模板（`settings.json` 的 `shellPath`/`defaultTools`/`defaultProjectTrust`、
 > 空 `mcp.json`）、PL1 落地、project trust 策略。
 
 | 文档 | 状态 |
 |---|---|
-| `006-runtime-config/{spec.md,plan.md}` | ⬜ 待生成（Phase 1） |
+| `009-runtime-config/{spec.md,plan.md}` | ⬜ 待生成（Phase 1） |
 
 ---
 
@@ -169,13 +182,15 @@
 | 003 | 生命周期与鸿蒙适配 | `lifecycle` | 主进程装配 |
 | 004 | 产物解压引导 | `artifact-bootstrap` | 主进程装配 |
 | 005 | 构建编排 | `build-pipeline` | 构建与配置 |
-| 006 | 运行时配置 | `runtime-config` | 构建与配置 |
+| 006 | 签名与应用身份 | `signing-identity` | 构建与配置 |
+| 009 | 运行时配置 | `runtime-config` | 构建与配置（原 006，需求 006 占用后顺延） |
 | 007 | 运行时入口 | `runtime-entry` | 运行时集成 |
 | 008 | Web 桥接层 | `web-bridge` | 运行时集成 |
 | 201 | 插件运行时 | `plugin-runtime` | 扩展模块 |
 | 301 | 技能运行能力规范 | `skill-runtime-capabilities` | 扩展模块 |
-
 编号分配依据：`docs/工程规划.md` §6.4。**编号只增不改、不复用。**
+
+> **例外（已发生 1 次，2026-10-14）**：`006` 原分配给 `runtime-config`（仅编号表占位、**目录从未生成**）。需求 `006-signing-identity` 按需求方指定的编号占用 `006`，`runtime-config` **顺延为 `009`** 并保留职责不变（`docs/工程规划.md` §6.4 已同步）。例外仅适用于「**占位未被物化**」的编号；已生成过 `spec.md`/`plan.md` 的编号一律不复用、不改号。
 
 ---
 

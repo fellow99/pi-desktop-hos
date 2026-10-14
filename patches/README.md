@@ -1,7 +1,31 @@
-# patches/ — 上游补丁集（本版本为空）
+# patches/ — 上游补丁集
 
-**本目录当前没有任何补丁文件。** 这是工程规划 §7 得出的**结论**，不是尚未开始。
+> **现状（2026-10-14，需求 203）**：**1 条**补丁 —— `patches/v0.11.1/0001-workspace-picker-roots.patch`（编号 `P203-1`）。
+> 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
+## 0. 已登记补丁
+
+### P203-1 — 四主目录「选择工作区目录」对话框
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `patches/v0.11.1/0001-workspace-picker-roots.patch` |
+| 全局编号 | `P203-1`（只增不改、不复用） |
+| 被 patch 的上游 | `pi-web` tag `v0.11.1`（`e783721`） |
+| 触及文件（7） | `lib/directory-browser.ts`（只增 + `getBrowseStartDirectory` 缺省起点）、`app/api/cwd/browse/route.ts`、`app/api/cwd/workspace-permission/route.ts`（新增）、`components/DirectoryPicker.tsx`、`lib/i18n/messages/{zh-CN,en,zh-TW}.ts`（入口文案「自定义路径…」→「选择工作区目录…」） |
+| **触发条件** | pi-web **没有** UI 插槽 / 客户端面插件机制：pi 扩展的 `ctx.ui` 只有 `select`/`confirm`/`input`/`editor` 四种对话框，`custom()` 在 RPC 模式返回 `undefined`（`pi/packages/coding-agent/docs/rpc-extension-ui.md`）。因此「四个主目录 Tab」这一对话框改造**无法**用插件机制实现，也没有任何上游现成机制可替代（对比：PL1 安装闸门有 `PI_OFFLINE` 等三点可选）。 |
+| **实施时机** | 需求 `203-plugin-workspace-picker` 开发期一次性生成；由 `scripts/prepare-next.mjs` 阶段 **1b** 在每次 `next build` 前**幂等应用**（`--reverse --check` 命中即跳过）。 |
+| **替代方案** | ① 纯插件方案：退化为 `ctx.ui.select` 列表，放弃四 Tab 与面包屑围栏（不满足验收标准 AC-1/AC-4，已否决）；② 只改 pi-web 工作树不打补丁：违反「上游工作树零改动」纪律、上游升级即丢失（已否决）；③ 自建独立 UI 页面/路由：改动面最大且重造目录浏览（已否决）。 |
+| 往返校验 | 构建期强制执行「应用 → 反向 → 断言 SHA-256 还原」（FR-203-022），并断言 `lib/directory-browser.ts` 含 `WORKSPACE_ROOTS_ENV`。构建成功后由阶段 6 **自动回退**，pi-web 结束时 pristine（FR-203-023）。另由 `scripts/test-workspace-picker.mjs` 的 44 断言在零设备条件下复验。 |
+| 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；不含 `package-lock.json`、不含二进制。 |
+| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.11.1/0001-workspace-picker-roots.patch` |
+| 规格 | `specs/203-plugin-workspace-picker/`、`docs/203-插件-选择工作区目录.md` |
+
+---
+
+## 1. 历史结论（v1.1 / v1.2 / v0.11.1 冻结时点）
+
+**当时本目录没有任何补丁文件。** 那是工程规划 §7 得出的**结论**，不是尚未开始。
 补丁按上下游版本分目录（`patches/<tag>/`），上游升级时**新建目录**、旧目录保留可追溯。
 本工程的上游基线是：
 
@@ -46,18 +70,31 @@
 8. **登记三要素**：每条补丁必须写明「触发条件 / 实施时机 / 替代方案」，并占用全局
    唯一编号（编号只增不改、不复用）。
 
-## 构建脚本如何消费本目录
+## 构建脚本如何消费本目录（已实现，2026-10-14）
 
-`scripts/` 下**没有** `build-pi-web.mjs` 这类"打补丁 + 构建"脚本，因为补丁集为空 ——
-`scripts/prepare-next.mjs` 直接 `npm ci` + `next build` + 裁剪。**第一条补丁出现时**，
-需要在 `prepare-next.mjs` 里加一个补丁应用阶段（照 `dsh-desktop-hos/scripts/build-dsh.mjs`
-的幂等循环写），并同步本文件与工程规划 §7 的表格。
+`scripts/prepare-next.mjs` 的阶段 **1b**（「上游补丁」）在 `next build` **之前**消费本目录：
+
+```
+for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
+    ├ git apply --reverse --check 命中 → 已应用，skip（幂等，no-op）
+    ├ 否则 git apply --check 命中
+    │    ├ 记录受影响文件 SHA-256（补丁新增的文件记为 null）
+    │    ├ git apply            → 断言「可往返」
+    │    ├ git apply --reverse
+    │    ├ 断言 SHA-256 与记录值逐条相等（FR-203-022）→ 不等即硬失败
+    │    └ git apply（正式生效）+ 断言 directory-browser.ts 含 WORKSPACE_ROOTS_ENV
+    └ 两者都失败 → 硬失败中止（**绝不** --3way）
+```
+
+补丁目录名 = 被 patch 的那一侧的上游 tag（当前 `patches/v0.11.1/`）。上游升级时**新建目录**、
+旧目录保留可追溯，并把 `prepare-next.mjs` 的 `PI_WEB_PATCH_TAG` 与本节同步。
 
 ## 与工程规划的对应
 
-- 补丁集为空的完整理由（逐条登记）：`docs/工程规划.md` §7
-- 补丁纪律（上下文区间、往返校验）：§2.4c、§7
+- 补丁集登记与理由：`docs/工程规划.md` §7
+- 补丁纪律（上下文区间、往返校验、detached worktree 生成）：§2.4c、§7
 - 上游基线锚定与升级复核责任：§11.3
+- 本条补丁的触发条件与替代方案：本文件 §0（`P203-1`）
 
 ---
 

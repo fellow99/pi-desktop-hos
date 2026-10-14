@@ -171,6 +171,23 @@
 |---|---|
 | `301-skill-runtime-capabilities/{spec.md,plan.md}` | ⬜ 待生成（Phase 1） |
 
+### 203 — 插件：选择工作区目录（plugin-workspace-picker）
+
+> 四主目录（沙箱/桌面/文档/下载）的「选择工作区目录」对话框：主目录 Tab、只向下的浏览围栏、
+> 新建文件夹默认名去重、授权归因与「去系统设置」、主目录记忆。
+> 壳侧 `src-main/main.js` 解析四根并经 `PI_HOS_ROOTS` 交给同进程的 pi-web；
+> **本工程第 1 条上游补丁**（`patches/v0.11.1/0001-workspace-picker-roots.patch`，编号 `P203-1`）
+> 落地 pi-web 侧的对话框改造 —— 因为 pi-web 没有 UI 插件接缝（`docs/工程规划.md` §7.1）。
+
+| 文档 | 状态 | 说明 |
+|---|---|---|
+| [203-plugin-workspace-picker/spec.md](./203-plugin-workspace-picker/spec.md) | ✅ 已生成 | 26 条 `FR-203-*` + 10 个验收场景 + AC-1…AC-11 |
+| [203-plugin-workspace-picker/plan.md](./203-plugin-workspace-picker/plan.md) | ✅ 已生成 | P1–P6 前提、D1–D7 决策、补丁工程化、风险 R1–R5 |
+| [203-plugin-workspace-picker/tasks.md](./203-plugin-workspace-picker/tasks.md) | ✅ 已生成 | T01–T32 + 执行顺序 |
+| [203-plugin-workspace-picker/test-cases.md](./203-plugin-workspace-picker/test-cases.md) | ✅ 已生成 | TC-B1–B4 / TC-D1–D10 / TC-R1–R2 与验收对照 |
+| [../docs/203-插件-选择工作区目录.md](../docs/203-插件-选择工作区目录.md) | ✅ 已生成 | 设计综述（§1–§18，体例对齐参考工程同名文档） |
+| [../patches/README.md](../patches/README.md) §0 | ✅ 已更新 | `P203-1` 的三要素登记 |
+
 ---
 
 ## 七、模块编号一览
@@ -187,6 +204,7 @@
 | 007 | 运行时入口 | `runtime-entry` | 运行时集成 |
 | 008 | Web 桥接层 | `web-bridge` | 运行时集成 |
 | 201 | 插件运行时 | `plugin-runtime` | 扩展模块 |
+| 203 | 插件：选择工作区目录 | `plugin-workspace-picker` | 扩展模块（需求 203，v0.11.1 之后交付） |
 | 301 | 技能运行能力规范 | `skill-runtime-capabilities` | 扩展模块 |
 编号分配依据：`docs/工程规划.md` §6.4。**编号只增不改、不复用。**
 

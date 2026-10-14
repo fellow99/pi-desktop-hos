@@ -5,7 +5,8 @@
  * 为什么存在：pi / pi-web 声明 `engines.node >= 22.19.0`，而 Electron 37 内置 Node 是 **22.17.0**。
  * 差 2 个 patch，能否跑起来必须**实测**、不能推断。本脚本用宿主机上与设备同版本的 Node 起同一份
  * Next 产物（与 src-main/main.js 完全相同的进程内启动方式），验证四件事：
- *   1) GET /                                   → 200 且 HTML 含 pi-web UI 标记（"Pi Web"）
+ *   1) GET /                                   → 200 且 HTML 含 UI 标记（"Pi Desktop" 或 "Pi Web"；
+ *                                              品牌化后成品是前者，两个都接受）
  *   2) GET /api/web-auth                       → 200（该路由免鉴权，返回 { enabled, authenticated }）
  *   3) Host 白名单：以 Host: <局域网IP>:<port> 请求 → 200（设备侧渲染进程走的就是这条路径）
  *   4) GET /api/agent/<id>/events              → content-type: text/event-stream（无会话可建连时打印 SKIP）
@@ -284,20 +285,27 @@ async function main() {
   const authHeaders = { Cookie: cookie, Authorization: authHeaderValue(password) };
 
   // ── 4. GET / → 200 + UI 标记 ─────────────────────────────────────────
+  //
+  // 标记来源与主进程一致：`src-main/main.js` 的 `UI_HTML_MARKERS`。品牌化（需求 103）之后
+  // 界面上游文案已被替换为 `Pi Desktop`，因此**不能**只认 `Pi Web` —— 本门禁曾因此在
+  // 品牌化之后恒为 FAIL（2026-10-14 需求 203 轮次发现并修正；当时的产物实测
+  // `index.html` 含 `Pi Desktop` ×8、`Pi Web` ×0）。两个标记都接受，并报告命中的是哪一个。
   banner('4. 首屏：GET /');
+  const UI_MARKERS = ['Pi Desktop', 'Pi Web'];
   try {
     const res = await httpGet(`${base}/`, authHeaders);
-    const hasMarker = res.body.includes('Pi Web');
-    if (res.status === 200 && hasMarker) {
-      record('GET / 返回 200 且含 UI 标记 "Pi Web"', 'PASS', `HTML ${res.body.length} 字节`);
+    const hit = UI_MARKERS.find((marker) => res.body.includes(marker));
+    const label = `GET / 返回 200 且含 UI 标记 ${UI_MARKERS.map((m) => `"${m}"`).join(' / ')}`;
+    if (res.status === 200 && hit) {
+      record(label, 'PASS', `命中 "${hit}"，HTML ${res.body.length} 字节`);
     } else if (res.status !== 200) {
-      record('GET / 返回 200 且含 UI 标记 "Pi Web"', 'FAIL',
+      record(label, 'FAIL',
         `HTTP ${res.status}（带会话 cookie/Basic 头仍非 200；body 前缀：${res.body.slice(0, 200).replace(/\s+/g, ' ')}）`);
     } else {
-      record('GET / 返回 200 且含 UI 标记 "Pi Web"', 'FAIL', `HTML 中未找到标记（前缀：${res.body.slice(0, 200).replace(/\s+/g, ' ')}）`);
+      record(label, 'FAIL', `HTML 中未找到任何 UI 标记（前缀：${res.body.slice(0, 200).replace(/\s+/g, ' ')}）`);
     }
   } catch (err) {
-    record('GET / 返回 200 且含 UI 标记 "Pi Web"', 'FAIL', describeError(err));
+    record('GET / 返回 200 且含 UI 标记', 'FAIL', describeError(err));
   }
 
   // ── 5. GET /api/web-auth → 200（免鉴权路由）──────────────────────────

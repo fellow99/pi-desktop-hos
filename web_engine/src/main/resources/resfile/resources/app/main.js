@@ -110,6 +110,8 @@ const LOADING_URL = 'data:text/html;charset=utf-8,' + encodeURIComponent(LOADING
 // ── 进程级状态 ────────────────────────────────────────────────────────
 const state = {
   userData: null,
+  /** 需求 203：四个工作区主目录的解析结果（含 permType），供 CDP/自检读取。 */
+  workspaceRoots: null,
   piAgentDir: null,
   tmpDir: null,
   piDistRoot: null,
@@ -313,6 +315,96 @@ function writeIfAbsent(file, content) {
   writeFileSync(file, content, 'utf8');
   logInfo(`已写入预置文件：${file}`);
   return true;
+}
+
+// ── (a2) 工作区主目录（需求 203：specs/203-plugin-workspace-picker/）──────
+/**
+ * 解析「选择工作区目录」对话框的四个主目录，并写入 PI_HOS_ROOTS。
+ *
+ * 为什么必须在**主进程**解析：渲染进程的 HOME 已被装配指向 userData（看不到真实家目录），
+ * 且 pi-web 侧拿不到 electron。pi-web 的 Next 服务器与本进程**同进程**（工程规划 §4.2），
+ * 所以一个环境变量即可把结果交给补丁后的 /api/cwd/browse —— 不新增 IPC、不新增协议，
+ * 也不承载任何业务数据（FR-203-004/026）。
+ *
+ * 沙箱根 = <userData>/workspace：真机实测**初始不存在**，故自动创建是必需行为（FR-203-002）；
+ * 与既有 pi-cwd（默认工作目录）刻意分离。用户目录三根不按「是否可读」过滤（FR-203-003），
+ * 不可读时由对话框呈现归因，不静默换根。
+ */
+function installWorkspaceRoots() {
+  const userData = state.userData;
+  if (!userData) {
+    logError('installWorkspaceRoots：userData 不可用，跳过（对话框将无主目录可用）');
+    return;
+  }
+  const sandbox = join(userData, 'workspace');
+  let sandboxOk = false;
+  try {
+    mkdirSync(sandbox, { recursive: true });
+    sandboxOk = true;
+  } catch (err) {
+    logError(`沙箱工作区根创建失败（${sandbox}）：${describeError(err)}`);
+  }
+  // 用户目录三根：鸿蒙 2in1 的固定挂载点（真机实测存在；未授权时读目录返回 EPERM）。
+  const userHome = '/storage/Users/currentUser';
+  const roots = [
+    { id: 'sandbox', label: '沙箱', path: sandbox, permType: null },
+    { id: 'desktop', label: '桌面', path: `${userHome}/Desktop`, permType: 'directory_desktop' },
+    { id: 'documents', label: '文档', path: `${userHome}/Documents`, permType: 'directory_document' },
+    { id: 'download', label: '下载', path: `${userHome}/Download`, permType: 'directory_download' },
+  ];
+  process.env.PI_HOS_ROOTS = JSON.stringify(roots);
+  state.workspaceRoots = roots;
+  logInfo(`PI_HOS_ROOTS 已就绪（${roots.length} 个主目录）：${roots.map((r) => `${r.id}=${r.path}`).join('｜')}`);
+  if (!sandboxOk) logWarn(`沙箱根不可用：${sandbox}（对话框内会显示不可用说明，且不回退其它主目录）`);
+}
+
+/**
+ * 权限预检 / 「去系统设置」的**原生能力桥**（FR-203-015/016）。
+ *
+ * 为什么挂在 globalThis 而不是走 IPC：pi-web 的 HTTP 路由与本进程同进程（工程规划 §4.2），
+ * 直接读全局即可。该桥只暴露两个动作（只读预检 + 系统设置深链），不承载业务数据（FR-203-026）。
+ *
+ * 接口取证（真机，logs/20261014-2/T01-poc-permission.txt）：
+ *   checkPermission(permissions: string[]) -> boolean[]（**同步**，实测 [false,false,false]）
+ *   openApplicationInfoEntry()             -> undefined（**同步**，无异常）
+ * **明确不采用**：callArkTSFunction / callArkTSAsyncFunction 调 PermissionManagerAdapter.*
+ * —— 实测调用会使应用进程直接消失。对话框内的「主动弹出授权窗」
+ * （requestDirectoryPermission）实测主进程调用不 settle，登记为 FR-203-017 待验证。
+ */
+function installPermissionBridge() {
+  const sp = electron.systemPreferences;
+  const permMap = {
+    directory_desktop: 'ohos.permission.READ_WRITE_DESKTOP_DIRECTORY',
+    directory_document: 'ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY',
+    directory_download: 'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY',
+  };
+  const available = Boolean(sp && typeof sp.checkPermission === 'function');
+  globalThis.__PI_HOS_PERMISSION__ = {
+    available,
+    /** @returns {boolean|undefined} undefined = 无法判定（桥不可用或入参未知），调用方按「归因 + 重试」处理。 */
+    check(permType) {
+      const name = permMap[permType];
+      if (!name || !available) return undefined;
+      try {
+        const result = sp.checkPermission([name]);
+        return Array.isArray(result) ? Boolean(result[0]) : undefined;
+      } catch (err) {
+        logWarn(`权限预检失败（${permType}）：${describeError(err)}`);
+        return undefined;
+      }
+    },
+    openAppInfo() {
+      if (!sp || typeof sp.openApplicationInfoEntry !== 'function') return false;
+      try {
+        sp.openApplicationInfoEntry();
+        return true;
+      } catch (err) {
+        logWarn(`打开应用信息页失败：${describeError(err)}`);
+        return false;
+      }
+    },
+  };
+  logInfo(`权限桥已就位：available=${available}（checkPermission=${typeof sp && typeof sp.checkPermission}，openApplicationInfoEntry=${typeof sp && typeof sp.openApplicationInfoEntry}）`);
 }
 
 /**
@@ -1053,6 +1145,8 @@ app.whenReady().then(async () => {
     win = createWindow();
     setStage('环境装配（HOME / PI_CODING_AGENT_DIR / TMPDIR / PI_OFFLINE / NO_PROXY）');
     assembleSandboxEnv();
+    installWorkspaceRoots();
+    installPermissionBridge();
   } catch (err) {
     if (!win) {
       // 连窗口都没建起来（理论上只剩 userData 不可用）：把细节塞进标题与全局错误，便于 CDP/日志取证。

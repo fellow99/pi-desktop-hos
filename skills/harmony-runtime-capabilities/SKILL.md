@@ -115,6 +115,15 @@ agent process** (which is where Pi itself runs), never in a child process.
 - Pi's data directory is
   `/data/storage/el2/base/files/pi-agent/` (it is redirected there by
   `PI_CODING_AGENT_DIR`). Sessions, settings, skills, extensions, and credentials live there.
+- The **workspace-directory picker** (the *choose workspace folder* dialog behind the sidebar and the
+  composer) offers four **workspace roots**: `沙箱` (the app sandbox, `<userData>/workspace`),
+  `桌面`, `文档`, `下载`. Browsing is fenced to the selected root: you can go **down** freely, but
+  there is **no path input and no go-up button**, and the breadcrumb stops at that root. If a user
+  directory cannot be read, the dialog explains why and offers an *open system settings* action
+  instead of showing a raw `EPERM`.
+- ⚠️ `systemPreferences.checkPermission([...])` has **false negatives**: after the three directory
+  permissions are granted, reads and writes succeed while `checkPermission` still returns `false`.
+  Never treat its `false` as "unavailable" — probe with a real `readdir` instead.
 - The **user's home directory** (`/storage/Users/currentUser`) is **not writable** by the
   application. `Desktop`, `Documents`, and `Download` are separate HarmonyOS system
   permissions: the user must grant them in

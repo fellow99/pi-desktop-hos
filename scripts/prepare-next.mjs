@@ -11,6 +11,7 @@
  * 它们在 HarmonyOS aarch64 上永远加载不了，白占 HAP 体积（且 §8.2 已决定终端面板 v1 降级）。
  * 保留项：undici / web-push / @earendil-works/*（纯 JS，§8.2 明示不许删）。
  */
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -142,6 +143,103 @@ if (existsSync(nodeModules)) {
   installDeps();
 }
 
+// ── 1b. 上游补丁（幂等；需求 203-plugin-workspace-picker）────────────────
+/**
+ * 按 `patches/<被 patch 的上游 tag>/` 目录幂等应用补丁（工程规划 §7 的补丁纪律）：
+ *   ① `git apply --reverse --check` 成功 → 已应用，**跳过**（no-op）；
+ *   ② 否则 `git apply --check` 成功 → 先在「应用 → 反向 → 断言 SHA-256 还原」上验一遍
+ *      可往返性（FR-203-022），再正式应用；
+ *   ③ 两者都失败 → **硬失败中止**。绝不 `--3way`、绝不覆盖上游 checkout 里的用户改动。
+ *
+ * 为什么在 `next build` 之前：补丁改的是 pi-web 的源码（组件/路由），必须参与编译。
+ * 为什么不把改动直接留在工作树：pi-web 是 submodule，工作树必须保持零改动，
+ * 否则「已部署产物」与上游 tag 的对应关系就断了。
+ */
+function tryRun(command, args, cwd) {
+  try {
+    execFileSync(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    return true;
+  } catch (err) {
+    // 把 git 的 stderr 带出来：否则「补丁真的冲突」与「git 不在 PATH 上」会显示成同一句话，
+    // 让人以为补丁有问题。
+    const stderr = err && err.stderr ? String(err.stderr).trim() : '';
+    console.log(`${LOG} git ${args.join(' ')} → 失败（cwd=${cwd}）${stderr ? '：' + stderr.split(String.fromCharCode(10)).join(' | ') : ''}`);
+    return false;
+  }
+}
+
+function sha256Of(file) {
+  return createHash('sha256').update(readFileSync(file)).digest('hex');
+}
+
+function applyUpstreamPatches(piWebDir, tag) {
+  const dir = join(projectRoot, 'patches', tag);
+  if (!existsSync(dir)) {
+    console.log(`${LOG} 无补丁目录 ${dir}（0 条补丁）`);
+    return 0;
+  }
+  const patches = readdirSync(dir).filter((name) => name.endsWith('.patch')).sort();
+  if (patches.length === 0) {
+    console.log(`${LOG} 补丁目录为空：${dir}`);
+    return 0;
+  }
+
+  let applied = 0;
+  for (const name of patches) {
+    const patchPath = join(dir, name);
+    if (tryRun('git', ['apply', '--reverse', '--check', patchPath], piWebDir)) {
+      console.log(`${LOG} 补丁已应用，跳过：${name}`);
+      continue;
+    }
+    if (!tryRun('git', ['apply', '--check', patchPath], piWebDir)) {
+      fail(`补丁与当前 pi-web 工作树冲突，中止（不得 --3way 强行合并）：${patchPath}`);
+    }
+
+    // 可往返性断言（FR-203-022）：受影响文件在「应用 → 反向」后必须逐字节还原。
+    const affected = readFileSync(patchPath, 'utf8')
+      .split('\n')
+      .map((line) => /^diff --git a\/(.+?) b\/(.+)$/.exec(line)?.[2])
+      .filter(Boolean);
+    const before = new Map();
+    for (const rel of affected) {
+      const abs = join(piWebDir, rel);
+      before.set(rel, existsSync(abs) ? sha256Of(abs) : null); // null = 补丁新增的文件
+    }
+
+    if (!tryRun('git', ['apply', patchPath], piWebDir)) {
+      fail(`补丁应用失败：${patchPath}`);
+    }
+    if (!tryRun('git', ['apply', '--reverse', patchPath], piWebDir)) {
+      fail(`补丁反向应用失败（可往返性被破坏）：${patchPath}`);
+    }
+    for (const rel of affected) {
+      const abs = join(piWebDir, rel);
+      const original = before.get(rel);
+      const now = existsSync(abs) ? sha256Of(abs) : null;
+      if (now !== original) {
+        fail(`补丁往返校验失败（${rel} 未还原，FR-203-022）：${patchPath}`);
+      }
+    }
+    console.log(`${LOG} 可往返校验通过（${affected.length} 个文件）：${name}`);
+
+    if (!tryRun('git', ['apply', patchPath], piWebDir)) {
+      fail(`补丁正式应用失败：${patchPath}`);
+    }
+    // 守卫：应用后必须能命中补丁的关键符号，否则说明补丁语义已被上游改动破坏。
+    const guardTarget = join(piWebDir, 'lib', 'directory-browser.ts');
+    if (!readFileSync(guardTarget, 'utf8').includes('WORKSPACE_ROOTS_ENV')) {
+      fail(`补丁守卫失败：${guardTarget} 缺少 WORKSPACE_ROOTS_ENV（补丁未真正生效）`);
+    }
+    console.log(`${LOG} 已应用补丁：${name}`);
+    applied += 1;
+  }
+  return applied;
+}
+
+const PI_WEB_PATCH_TAG = 'v0.11.1';
+const patchesApplied = applyUpstreamPatches(piWebRoot, PI_WEB_PATCH_TAG);
+console.log(`${LOG} 本轮新应用补丁 ${patchesApplied} 条（目录 patches/${PI_WEB_PATCH_TAG}/）`);
+
 // ── 2. 生产构建 ───────────────────────────────────────────────────────
 banner('2. next build --webpack');
 const buildScript = piWebPkg.scripts && piWebPkg.scripts.build ? piWebPkg.scripts.build : null;
@@ -247,3 +345,37 @@ if (!serverEntry) {
 console.log(`${LOG} ✔ .next/BUILD_ID = ${buildId}`);
 console.log(`${LOG} ✔ Next 服务入口 = ${serverEntry}`);
 console.log(`${LOG} 完成：pi-web 生产产物已就绪（下一步：node scripts/smoke-node22.mjs 门禁）`);
+
+// ── 6. 回退上游补丁（保持 ../pi-web 工作树零改动，FR-203-023）─────────────
+/**
+ * `.next` 已经产出，补丁不再需要留在工作树上：镜像回退让 pi-web 回到 tag 的原样，
+ * 「已部署产物 ↔ 上游 tag」的对应关系因此可核验。collect-pi 只消费 `.next` 与 node_modules，
+ * 不读 pi-web 的源码目录，所以这一步不影响下游打包。
+ *
+ * 幂等：下一次 prepare-next 会因为 `--reverse --check` 失败而重新应用。
+ * 若在 build 中途失败，则**不会**走到这里 —— 补丁保持已应用状态，下一次运行直接跳过（安全）。
+ */
+function revertUpstreamPatches(piWebDir, tag) {
+  const dir = join(projectRoot, 'patches', tag);
+  if (!existsSync(dir)) return 0;
+  let reverted = 0;
+  for (const name of readdirSync(dir).filter((n) => n.endsWith('.patch')).sort()) {
+    const patchPath = join(dir, name);
+    if (tryRun('git', ['apply', '--reverse', '--check', patchPath], piWebDir)) {
+      if (!tryRun('git', ['apply', '--reverse', patchPath], piWebDir)) {
+        console.warn(`${LOG} ⚠ 补丁回退失败（工作树仍为已应用状态，不影响本地产物）：${name}`);
+        continue;
+      }
+      console.log(`${LOG} 已回退补丁（pi-web 恢复 pristine）：${name}`);
+      reverted += 1;
+    } else {
+      console.log(`${LOG} 补丁未应用，无需回退：${name}`);
+    }
+  }
+  return reverted;
+}
+
+banner('6. 回退上游补丁（保持 pi-web pristine）');
+const reverted = revertUpstreamPatches(piWebRoot, PI_WEB_PATCH_TAG);
+console.log(`${LOG} 本轮回退补丁 ${reverted} 条`);
+console.log(`${LOG} pi-web 工作树状态：${execFileSync('git', ['status', '--porcelain'], { cwd: piWebRoot, encoding: 'utf8' }).trim() || '（零改动）'}`);

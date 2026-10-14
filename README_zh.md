@@ -196,18 +196,34 @@ hdc fport tcp:19229 tcp:9229               # CDP 调试（仅 debug 构建；生
 
 ## 权限
 
-**必须申请（ACL，受限权限）**：`ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY`
-（`system_basic` / since API 14 / 仅平板 + 2in1 / **须经 AGC 申请 ACL**）—— 启用
-Electron/V8 的 JIT，引擎必需，不可删除。
+**必须申请（ACL，受限权限，共 3 项）**：
 
-**开放权限**（写进 `requestPermissions` 即安装时授予）：`INTERNET`、`GET_NETWORK_INFO`、
-`KEEP_BACKGROUND_RUNNING`、`READ_WRITE_DOCUMENTS_DIRECTORY`、`READ_WRITE_DOWNLOAD_DIRECTORY`、
-`FILE_ACCESS_PERSIST`。
+- `ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY`（`system_basic` / since API 14 /
+  `system_grant`）—— 启用 Electron/V8 的 JIT，引擎必需，不可删除。
+- `ohos.permission.READ_PASTEBOARD`（`system_basic` / since API 11 / `user_grant`）—— 用户把
+  剪贴板中的文本 / HTML / 图片粘贴到对话输入框时读取。
+- `ohos.permission.READ_WRITE_DESKTOP_DIRECTORY`（`system_basic` / since API 11 / `user_grant`）——
+  所选工作目录位于桌面目录时直接读写。
+
+**开放权限**（共 21 项；写进 `requestPermissions` 即安装时授予，`user_grant` 项首次使用时另弹窗）：
+`INTERNET`、`GET_NETWORK_INFO`、`KEEP_BACKGROUND_RUNNING`（electron 模块，配合
+`backgroundModes: ["taskKeeping"]`）、`ACCESS_CERT_MANAGER`、`RUNNING_LOCK`、`PRINT`、
+`PREPARE_APP_TERMINATE`、`ACCESS_BIOMETRIC`、`FILE_ACCESS_PERSIST`、`PRIVACY_WINDOW`、
+`WINDOW_TOPMOST`、`INHERIT_PARENT_PERMISSION`、`kernel.IGNORE_LIBRARY_VALIDATION`、
+`kernel.EXEMPT_ANONYMOUS_EXECUTABLE_MEMORY`、`GYROSCOPE`、`ACCELEROMETER`、`GET_FILE_ICON`、
+`LOCK_WINDOW_CURSOR`、`READ_WRITE_DOWNLOAD_DIRECTORY`、`READ_WRITE_DOCUMENTS_DIRECTORY`、
+`CUSTOM_SCREEN_CAPTURE`。
 
 **本工程不需要**：二进制证书（AGC `certType: 4`，不随包分发自有 ELF）、
-`ALLOW_EXTERNAL_NATIVE_CODE`、`READ_WRITE_DESKTOP_DIRECTORY`（`system_basic`，上架障碍）。
+`ALLOW_EXTERNAL_NATIVE_CODE`、`kernel.LOAD_INDEPENDENT_LIBRARY`、
+`ACCESS_USER_FULL_DISK` / `READ_WRITE_USER_FILE`、四个 `*PLUGIN*` 权限，以及
+`CUSTOM_SANDBOX` / `RUN_ANY_CODE` / `SANDBOX_ACCESS_MANAGER` /
+`GET_DEVICE_INDEPENDENT_BINARY_CERT` / `SET_DEVICE_INDEPENDENT_BINARY_CERT_STATUS`。
 
-ACL 提交要点与上架前置清单见 [docs/工程规划.md](docs/工程规划.md) §11.4、§11.5。
+可直接照填 AGC 表单的申请文案、完整权限清单与提交纪律见
+[docs/ACL申请清单.md](docs/ACL申请清单.md)；模块规格见
+[specs/006-signing-identity/](specs/006-signing-identity/)；上架前置清单见
+[docs/工程规划.md](docs/工程规划.md) §11.4、§11.5。
 
 ## 能力边界（设备侧已知限制）
 
@@ -243,11 +259,13 @@ ACL 提交要点与上架前置清单见 [docs/工程规划.md](docs/工程规�
 | [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md) | 设备侧能力结论的**权威文档**（能力 × 状态 × 根因层 L1–L4 + 证据 + REV-1/REV-2） |
 | [docs/真机验证记录.md](docs/真机验证记录.md) | 逐轮真机验证的环境、步骤、结论（轮次 0–4） |
 | [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | 图标物料与生成规则（需求 103） |
+| [docs/ACL申请清单.md](docs/ACL申请清单.md) | ACL 申请手册：3 项受限权限的**可直接照填**申请文案、21 项开放权限清单与「不申请」清单 |
 | [specs/README.md](specs/README.md) | 规格索引、文档规范与版本需求（101+）清单 |
 | [specs/001-host/](specs/001-host/) | Host 宿主（环境装配 / 进程内服务器 / 就绪判定） |
 | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | 版本收敛 0.11.1（spec / plan / tasks / test-cases） |
 | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | 纯 JS 工具扩展：`bash` / `find` / `grep` 同名顶替 |
 | [specs/103-branding/](specs/103-branding/) | 品牌化：文案 / Logo / 图标物料 / 禁用版本检测 |
+| [specs/006-signing-identity/](specs/006-signing-identity/) | 签名与应用身份：bundleName / 显示名、签名材料仅内存注入、ACL 归属、`versionCode` |
 | [runtime-overlays/README.md](runtime-overlays/README.md) | 运行时定制清单与 prune/overlay 机制（23 个文件） |
 | [patches/README.md](patches/README.md) | 为什么本版本补丁集为空（8 条候选逐条源码核实） |
 | [config/README.md](config/README.md) | 运行时预置配置的每个键为什么这样设 |

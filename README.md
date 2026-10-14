@@ -221,21 +221,33 @@ hdc fport tcp:19229 tcp:9229               # CDP debugging (debug builds only; p
 
 ## Permissions
 
-**Must be requested (ACL, restricted permission)**:
-`ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY` (`system_basic` / since API 14 / tablet +
-2in1 only / **requires an ACL application through AGC**) — it enables Electron/V8's JIT, is
-required by the engine, and cannot be removed.
+**Must be requested (ACL, restricted permissions — 3 items)**:
+- `ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY` (`system_basic` / since API 14 / system_grant)
+  — enables Electron/V8's JIT, is required by the engine, and cannot be removed.
+- `ohos.permission.READ_PASTEBOARD` (`system_basic` / since API 11 / user_grant) — reading the
+  clipboard when the user pastes text/HTML/an image into the chat input.
+- `ohos.permission.READ_WRITE_DESKTOP_DIRECTORY` (`system_basic` / since API 11 / user_grant) —
+  direct read/write when the chosen workspace lives in the Desktop directory.
 
-**Open permissions** (granted at install time once listed in `requestPermissions`):
-`INTERNET`, `GET_NETWORK_INFO`, `KEEP_BACKGROUND_RUNNING`,
-`READ_WRITE_DOCUMENTS_DIRECTORY`, `READ_WRITE_DOWNLOAD_DIRECTORY`, `FILE_ACCESS_PERSIST`.
+**Open permissions** (21 items; granted at install time once listed in `requestPermissions`,
+`user_grant` ones also prompt at first use): `INTERNET`, `GET_NETWORK_INFO`,
+`KEEP_BACKGROUND_RUNNING` (electron module, with `backgroundModes: ["taskKeeping"]`),
+`ACCESS_CERT_MANAGER`, `RUNNING_LOCK`, `PRINT`, `PREPARE_APP_TERMINATE`, `ACCESS_BIOMETRIC`,
+`FILE_ACCESS_PERSIST`, `PRIVACY_WINDOW`, `WINDOW_TOPMOST`, `INHERIT_PARENT_PERMISSION`,
+`kernel.IGNORE_LIBRARY_VALIDATION`, `kernel.EXEMPT_ANONYMOUS_EXECUTABLE_MEMORY`, `GYROSCOPE`,
+`ACCELEROMETER`, `GET_FILE_ICON`, `LOCK_WINDOW_CURSOR`, `READ_WRITE_DOWNLOAD_DIRECTORY`,
+`READ_WRITE_DOCUMENTS_DIRECTORY`, `CUSTOM_SCREEN_CAPTURE`.
 
 **Not needed by this project**: binary certificates (AGC `certType: 4`; we ship no ELF of our
-own), `ALLOW_EXTERNAL_NATIVE_CODE`, `READ_WRITE_DESKTOP_DIRECTORY` (`system_basic`, an app-store
-obstacle).
+own), `ALLOW_EXTERNAL_NATIVE_CODE`, `kernel.LOAD_INDEPENDENT_LIBRARY`,
+`ACCESS_USER_FULL_DISK` / `READ_WRITE_USER_FILE`, the four `*PLUGIN*` permissions, and
+`CUSTOM_SANDBOX` / `RUN_ANY_CODE` / `SANDBOX_ACCESS_MANAGER` /
+`GET_DEVICE_INDEPENDENT_BINARY_CERT` / `SET_DEVICE_INDEPENDENT_BINARY_CERT_STATUS`.
 
-ACL submission notes and the app-store pre-flight checklist are in
-[docs/工程规划.md](docs/工程规划.md) §11.4, §11.5.
+Ready-to-paste ACL application text, the full permission inventory, and the submission rules are
+in [docs/ACL申请清单.md](docs/ACL申请清单.md); the module spec is in
+[specs/006-signing-identity/](specs/006-signing-identity/); the app-store pre-flight checklist is
+in [docs/工程规划.md](docs/工程规划.md) §11.4, §11.5.
 
 ## Capability boundaries (known device-side limitations)
 
@@ -273,11 +285,13 @@ See [skills/harmony-runtime-capabilities/SKILL.md](skills/harmony-runtime-capabi
 | [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md) | **Authoritative** device-capability inventory (capability × status × root-cause layer L1–L4 + evidence + REV-1/REV-2) |
 | [docs/真机验证记录.md](docs/真机验证记录.md) | Per-round device-verification environment, steps and conclusions (rounds 0–4) |
 | [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | Icon assets and generation rules (requirement 103) |
+| [docs/ACL申请清单.md](docs/ACL申请清单.md) | ACL application manual: the 3 restricted permissions with ready-to-paste text, the 21 open permissions, and what *not* to apply for |
 | [specs/README.md](specs/README.md) | Spec index, documentation rules, and the version-requirement (101+) list |
 | [specs/001-host/](specs/001-host/) | Host (environment wiring / in-process server / readiness check) |
 | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | Version convergence to 0.11.1 (spec / plan / tasks / test-cases) |
 | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | Pure-JS tool extensions: `bash` / `find` / `grep` taken over under the same names |
 | [specs/103-branding/](specs/103-branding/) | Branding: text / Logo / icon assets / version-check disabled |
+| [specs/006-signing-identity/](specs/006-signing-identity/) | Signing and app identity: bundleName / display name, in-memory signing injection, ACL ownership, `versionCode` |
 | [runtime-overlays/README.md](runtime-overlays/README.md) | Runtime customization list and the prune/overlay mechanism (23 files) |
 | [patches/README.md](patches/README.md) | Why this version's patch set is empty (8 candidates verified against source, one by one) |
 | [config/README.md](config/README.md) | Why every runtime preset key is set the way it is |

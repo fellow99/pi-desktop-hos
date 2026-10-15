@@ -1,6 +1,6 @@
 # patches/ — 上游补丁集
 
-> **现状（2026-10-14，需求 203）**：**1 条**补丁 —— `patches/v0.11.1/0001-workspace-picker-roots.patch`（编号 `P203-1`）。
+> **现状（2026-10-15）**：**2 条**补丁 —— `patches/v0.11.1/0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `patches/v0.11.1/0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
 > 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
 ## 0. 已登记补丁
@@ -20,6 +20,22 @@
 | 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；不含 `package-lock.json`、不含二进制。 |
 | 回退方式 | `git -C ../pi-web apply --reverse patches/v0.11.1/0001-workspace-picker-roots.patch` |
 | 规格 | `specs/203-plugin-workspace-picker/`、`docs/203-插件-选择工作区目录.md` |
+
+### PFIX-1 — 会话导出在「无独立运行时二进制」的设备上回退到进程内导出
+
+| 项 | 内容 |
+|---|---|
+| 文件 | `patches/v0.11.1/0002-session-export-in-process-fallback.patch` |
+| 全局编号 | `PFIX-1`（只增不改、不复用；缺陷修复补丁，不挂编号需求） |
+| 被 patch 的上游 | `pi-web` tag `v0.11.1`（`e783721`） |
+| 触及文件（1） | `app/api/sessions/[id]/export/route.ts`（`:219` 的 spawn 前置条件加 `existsSync(process.execPath)`） |
+| **触发条件** | 真机点「完整历史」→ `/api/sessions/<id>/export` 走 `exportSession()` 的 **spawn CLI** 分支：`execFileAsync(process.execPath, [cliPath, "--export", …])`。设备上 `process.execPath` = `/data/app/electron.org/electron_1.0/bin/electron/electron` —— **该路径不存在**（实测 `fs.existsSync` 为 false），且鸿蒙侧本就没有可用的独立 node/electron 可执行文件，于是 `spawn … ENOENT` → 路由 500，导出页只显示一行 JSON 错误。修前必须先修掉「点『完整历史』闪退」（`PFIX-1` 的上游症状链见 `logs/20261015-crash/`）。 |
+| **实施时机** | 2026-10-15 缺陷修复一并生成；由 `scripts/prepare-next.mjs` 阶段 **1b** 幂等应用（排序在 `0001` 之后，两者触及文件不相交、上下文区间不重叠）。 |
+| **替代方案** | ① 让设备侧能 spawn：需鸿蒙可用的 node/electron 可执行文件，环境不具备（`docs/鸿蒙环境能力清单-v0.11.1.md` 已登记 spawn/PTY 不可用），且不在本工程可改范围（已否决）；② 把 `dist/cli.js` 从 pi-dist 载荷中删掉以让 `getPiCliPath()` 返回 null：会牵连其它依赖 CLI 的路径，且是「靠删文件改变分支」的隐式耦合（已否决）；③ 在壳侧伪造 `process.execPath`：无法改变「设备上确实没有该二进制」的事实（已否决）。 |
+| 往返校验 | 构建期强制执行「应用 → 反向 → 断言 SHA-256 还原」。构建成功后由阶段 6 **自动回退**，pi-web 结束时 pristine。 |
+| 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；另在该 worktree 内验证「pristine 可应用」「先 0001 再 0002 不冲突」「两条往返后残留 0」。 |
+| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.11.1/0002-session-export-in-process-fallback.patch` |
+| 规格 | `logs/20261015-crash/`（崩溃取证与修复记录） |
 
 ---
 

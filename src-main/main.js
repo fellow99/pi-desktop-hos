@@ -1004,46 +1004,120 @@ function trackWindowState(win) {
   win.on('close', () => { if (timer) clearTimeout(timer); saveWindowState(win); });
 }
 
-function installFullscreenShortcut(win) {
+/** 全屏快捷键 + 回程快捷键（应用内承载的导出页没有回程入口，这两个是兜底）。 */
+function installWindowShortcuts(win) {
+  const canGoBack = () => {
+    const nav = win.webContents.navigationHistory;
+    if (nav && typeof nav.canGoBack === 'function') return nav.canGoBack();
+    return typeof win.webContents.canGoBack === 'function' && win.webContents.canGoBack();
+  };
+  const goBack = () => {
+    const nav = win.webContents.navigationHistory;
+    if (nav && typeof nav.goBack === 'function') nav.goBack();
+    else if (typeof win.webContents.goBack === 'function') win.webContents.goBack();
+  };
   win.webContents.on('before-input-event', (event, input) => {
-    if (input.type === 'keyDown' && (input.code === 'F11' || input.key === 'F11')) {
+    if (input.type !== 'keyDown') return;
+    if (input.code === 'F11' || input.key === 'F11') {
       event.preventDefault();
       win.setFullScreen(!win.isFullScreen());
+      return;
+    }
+    if (input.alt && (input.code === 'ArrowLeft' || input.key === 'ArrowLeft') && canGoBack()) {
+      event.preventDefault();
+      goBack();
     }
   });
 }
 
-/** 外链一律交给 ArkWeb 外链页（§4.7）：Chromium 只渲染本应用自身的界面。 */
+/**
+ * 应用内承载的页面（会话导出 `/api/sessions/<id>/export`）自带整套 UI，却没有回应用主界面的入口：
+ * 注入一枚悬浮「返回」，免得用户被困在导出页只能重启应用。
+ */
+function installInAppPageAffordances(win) {
+  win.webContents.on('did-finish-load', () => {
+    let url = '';
+    try {
+      url = win.webContents.getURL();
+    } catch {
+      return;
+    }
+    if (!/\/api\/sessions\/[^/]+\/export/.test(url)) return;
+    const script = `(function () {
+      if (document.getElementById('pi-hos-back')) return;
+      var b = document.createElement('button');
+      b.id = 'pi-hos-back';
+      b.type = 'button';
+      b.textContent = '← 返回 Pi Desktop';
+      b.style.cssText = 'position:fixed;top:12px;left:12px;z-index:2147483647;padding:8px 14px;'
+        + 'border:1px solid rgba(0,0,0,.18);border-radius:8px;font:600 14px/1 system-ui,sans-serif;'
+        + 'background:#fff;color:#111;box-shadow:0 2px 10px rgba(0,0,0,.18);cursor:pointer';
+      b.addEventListener('click', function () { window.history.back(); });
+      document.body.appendChild(b);
+    })();`;
+    win.webContents.executeJavaScript(script, true).catch(() => {});
+    logInfo(`会话导出页已注入返回入口（Alt+← 亦可）：${url}`);
+  });
+}
+
+/** 该地址是否由本应用自己的服务提供（同端口即视为同源：loopback 与局域网 IP 都是它）。 */
+function isAppOwnedUrl(rawUrl) {
+  try {
+    const target = new URL(rawUrl);
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return false;
+    if (state.port === null) return false;
+    return target.port === String(state.port);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 打开一个应用内 / 应用外地址。
+ *
+ * 分两类处置（2026-10-15 修复「点『完整历史』即闪退」）：
+ *
+ * 1. **应用自己的地址**（`/api/sessions/<id>/export` 等由进程内 Next 服务器提供，端口 == 本机服务端口）
+ *    → 交给**窗口内**承载。它既不是「外部网页」，而且只有本进程的会话 Cookie 才能通过
+ *    `PI_WEB_PASSWORD` 鉴权 —— 外链页与系统浏览器都只会拿到 401（见 pi-web `proxy.ts`）。
+ * 2. **真正的第三方地址** → 交系统浏览器 `shell.openExternal`。
+ *
+ * ⚠️ 绝不可改用 ArkTS 的 `ExternalWeb.Open`（`EXTERNAL_WEB_BRIDGE`）：ArkTS 侧**从未注册**该函数，
+ * `callArkTSFunction` 会走适配器的 `GetJSFunction ExternalWeb.Open failed` 分支并**解引用空指针**，
+ * 整个进程 SIGSEGV 闪退（真机 cppcrash 报告与隔离复现见 `logs/20261015-crash/`）。
+ * 待 ArkTS 侧补上该绑定后，才可改回 ArkWeb 外链页（`docs/工程规划.md` §4.7）。
+ */
 async function openExternalUrl(url) {
   if (!/^https?:\/\//i.test(url)) {
     logWarn(`非 http(s) 外链，忽略：${url}`);
     return;
   }
-  const sp = electron.systemPreferences;
-  if (sp && typeof sp.callArkTSFunction === 'function') {
-    try {
-      const raw = await sp.callArkTSFunction(EXTERNAL_WEB_BRIDGE, 'string', [url]);
-      // 桥返回 { type, value } 信封时取 value；其它形态直接字符串化。
-      const value = raw && typeof raw === 'object' && 'value' in raw ? raw.value : raw;
-      logInfo(`外链已转交 ArkWeb 外链页（${EXTERNAL_WEB_BRIDGE}）：${url} → ${String(value)}`);
+  if (isAppOwnedUrl(url)) {
+    const win = state.win;
+    if (!win || win.isDestroyed()) {
+      logWarn(`应用内地址没有可承载的窗口，忽略：${url}`);
       return;
-    } catch (err) {
-      logError(`ArkTS 外链桥调用失败（${EXTERNAL_WEB_BRIDGE}）：${describeError(err)}`);
     }
-  } else {
-    logWarn(`ArkTS 外链桥不可用（systemPreferences.callArkTSFunction 缺失），回退 shell.openExternal`);
+    logInfo(`应用内地址改为窗口内打开（会话 Cookie 可用）：${url}`);
+    try {
+      await win.loadURL(url);
+    } catch (err) {
+      logError(`应用内地址打开失败（${url}）：${describeError(err)}`);
+    }
+    return;
   }
+  logWarn(`外链交给系统浏览器（ArkTS 外链桥 ${EXTERNAL_WEB_BRIDGE} 未注册，调用必崩）：${url}`);
   try {
     await shell.openExternal(url);
-    logWarn(`已用 shell.openExternal 打开外链（无 ArkWeb 外链页时的回退路径）：${url}`);
   } catch (err) {
-    logError(`外链打开彻底失败（${url}）：${describeError(err)}`);
+    logError(`外链打开失败（${url}）：${describeError(err)}`);
   }
 }
 
 /**
- * 合规 + 安全守卫：弹窗一律拒绝（改走 ArkWeb 外链页），非本源导航一律阻止。
- * pi Web UI 用 window.open 打开 OAuth 登录页与会话导出，不拦会弹出 Chromium 窗口。
+ * 合规 + 安全守卫：弹窗一律拒绝（改由 openExternalUrl 分流），非本源导航一律阻止。
+ * pi Web UI 用 window.open 打开 OAuth 登录页与会话导出，不拦会弹出 Chromium 窗口
+ * （本运行时创建第二个窗口不会落地原生窗口，实测无用）。
  */
 function installExternalNavigationGuard(win) {
   try {
@@ -1086,8 +1160,9 @@ function createWindow() {
   state.win = win;
   win.setWindowButtonVisibility(true);
   trackWindowState(win);
-  installFullscreenShortcut(win);
+  installWindowShortcuts(win);
   installExternalNavigationGuard(win);
+  installInAppPageAffordances(win);
   if (saved.isMaximized) win.maximize();
 
   // 先加载内联 loading 页：首装解压 + 起服务耗时较长，且失败时必须看得见原因。

@@ -9,14 +9,15 @@
 > 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），
 > 渲染层同源加载该服务端提供的 Pi Web UI，界面 100% 复用上游，不 fork 前端。
 
-**版本**：`0.11.1` / `versionCode` `1101`（**已构建、已真机签名部署验证**，见 [docs/真机验证记录.md](docs/真机验证记录.md)）
-· **上游基线**：`pi` **v1.1.0**（`Branch_v1.1.0`）+ `pi-web` **v0.11.1**（`Branch_v0.11.1`）
+**版本**：`0.12.1` / `versionCode` `1201`（**已构建、已真机签名部署验证**，见 [docs/真机验证记录.md](docs/真机验证记录.md)）
+· **上游基线**：`pi` **v1.2.0**（`Branch_v1.2.0`）+ `pi-web` **v0.12.1**（`Branch_v0.12.1`）
 · **运行时**：Electron **37.2.3**（Node **22.17.0** / ABI **v138**；HarmonyOS 侧经 `harmonypc-electron` 运行时）
 · **应用名 / 包名**：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
 
 完整工程规划与交付记录见 **[docs/工程规划.md](docs/工程规划.md)**；设备侧能力结论的**权威文档**是
-**[docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md)**（含修订节 **REV-1** / **REV-2**，
-冲突处以修订节为准）。
+**[docs/鸿蒙环境能力清单-v0.12.1.md](docs/鸿蒙环境能力清单-v0.12.1.md)**（本版轮次产出；
+0.11.1 轮次的清单 **[docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md)**（含修订节
+**REV-1** / **REV-2**）保留可比对）。
 
 ---
 
@@ -42,6 +43,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 |---|---|---|---|
 | `001-host` | [specs/001-host/](specs/001-host/) | Host 宿主：环境装配、进程内 Next 服务器、HTTP 轮询就绪判定、随机密码与凭据注入 | 轮次 1 |
 | `101-version-0.11.1` | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | 版本收敛到 `0.11.1` / `1101`；清理中间物后全流水线重建与字节级可复现性；产出环境能力清单 | 轮次 2、2b |
+| `101-version-0.12.1` | [specs/101-version-0.12.1/](specs/101-version-0.12.1/) | 版本收敛到 `0.12.1` / `1201`；上游升级到 `pi` v1.2.0 + `pi-web` v0.12.1，既有 2 条补丁复核后在 `patches/v0.12.1/` 重新生成；全流水线重建；环境能力清单复测 | 轮次 7 |
 | `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | 用随包**纯 JS 扩展**同名顶替 `bash` / `find` / `grep`；**上游与补丁集零改动** | 轮次 3、3b、3c |
 | `103-branding` | [specs/103-branding/](specs/103-branding/) | 界面品牌改 `Pi Desktop`、Logo/图标改用父工程物料、禁用新版本检测（上游零改动） | 轮次 4 |
 
@@ -90,8 +92,8 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 
 ```
 pi-workspace/
-├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.1.0
-├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.11.1
+├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.2.0
+├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.12.1
 ├── harmonypc-electron/                 # [submodule] Electron-on-鸿蒙运行时（shell + manifest）
 ├── harmonypc-electron-versions/        # （普通目录，gitignore）v37 归档 + 原生模块材料
 ├── assets/                             # 父工程品牌物料（logo-1024-with-bg.png / logo.png / logo.svg）
@@ -256,7 +258,7 @@ hdc fport tcp:19229 tcp:9229               # CDP 调试（仅 debug 构建；生
 | 文档 | 内容 |
 |---|---|
 | [docs/工程规划.md](docs/工程规划.md) | **工程规划（source of truth）**：做什么、怎么做、按什么顺序做、有哪些风险 |
-| [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md) | 设备侧能力结论的**权威文档**（能力 × 状态 × 根因层 L1–L4 + 证据 + REV-1/REV-2） |
+| [docs/鸿蒙环境能力清单-v0.12.1.md](docs/鸿蒙环境能力清单-v0.12.1.md) | 设备侧能力结论的**权威文档**（能力 × 状态 × 根因层 L1–L4 + 证据；本版轮次产出）。0.11.1 轮次的清单 [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md)（**REV-1/REV-2**）保留可比对 |
 | [docs/真机验证记录.md](docs/真机验证记录.md) | 逐轮真机验证的环境、步骤、结论（轮次 0–4） |
 | [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | 图标物料与生成规则（需求 103） |
 | [docs/ACL申请清单.md](docs/ACL申请清单.md) | ACL 申请手册：3 项受限权限的**可直接照填**申请文案、21 项开放权限清单与「不申请」清单 |

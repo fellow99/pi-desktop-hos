@@ -5,7 +5,7 @@
  * 流程：前置检查 →（node_modules 缺失时）npm ci → next build --webpack → 裁剪平台特定原生件
  *      → 轮换预览密钥 → 断言 .next/BUILD_ID。
  *
- * 前置：同级目录存在 ../pi-web（v0.11.1）与 ../pi（pi v1.1.0，npm 从它解析 @earendil-works/*）。
+ * 前置：同级目录存在 ../pi-web（v0.12.1）与 ../pi（pi v1.2.0，npm 从它解析 @earendil-works/*）。
  *
  * 为什么必须裁剪：`.next` 必须在能完整安装依赖的宿主机上构建，产物里因此混入宿主平台的原生件；
  * 它们在 HarmonyOS aarch64 上永远加载不了，白占 HAP 体积（且 §8.2 已决定终端面板 v1 降级）。
@@ -23,7 +23,7 @@ const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const piWebRoot = resolve(projectRoot, '../pi-web');
 const piRoot = resolve(projectRoot, '../pi');
 
-const EXPECTED_PI_WEB_VERSION = '0.11.1';
+const EXPECTED_PI_WEB_VERSION = '0.12.1';
 const LOG = '[prepare-next]';
 
 const KEEP_PATH_MARKERS = ['linux-arm64', 'arm64', 'ohos'];
@@ -100,10 +100,10 @@ function* walkFiles(dir) {
 // ── 0. 前置检查 ───────────────────────────────────────────────────────
 banner('0. 前置检查');
 if (!existsSync(piWebRoot)) {
-  fail(`pi-web 未找到：${piWebRoot}（期望与 pi-desktop-hos 同级；上游基线 pi-web v0.11.1）`);
+  fail(`pi-web 未找到：${piWebRoot}（期望与 pi-desktop-hos 同级；上游基线 pi-web v0.12.1）`);
 }
 if (!existsSync(piRoot)) {
-  fail(`pi 未找到：${piRoot}（期望与 pi-desktop-hos 同级；上游基线 pi v1.1.0，pi-web 的 @earendil-works/* 由它解析）`);
+  fail(`pi 未找到：${piRoot}（期望与 pi-desktop-hos 同级；上游基线 pi v1.2.0，pi-web 的 @earendil-works/* 由它解析）`);
 }
 const piWebPkgPath = join(piWebRoot, 'package.json');
 if (!existsSync(piWebPkgPath)) fail(`pi-web/package.json 不存在：${piWebPkgPath}`);
@@ -236,7 +236,7 @@ function applyUpstreamPatches(piWebDir, tag) {
   return applied;
 }
 
-const PI_WEB_PATCH_TAG = 'v0.11.1';
+const PI_WEB_PATCH_TAG = 'v0.12.1';
 const patchesApplied = applyUpstreamPatches(piWebRoot, PI_WEB_PATCH_TAG);
 console.log(`${LOG} 本轮新应用补丁 ${patchesApplied} 条（目录 patches/${PI_WEB_PATCH_TAG}/）`);
 

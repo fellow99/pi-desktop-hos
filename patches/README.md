@@ -1,6 +1,6 @@
 # patches/ — 上游补丁集
 
-> **现状（2026-10-15）**：**2 条**补丁 —— `patches/v0.11.1/0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `patches/v0.11.1/0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
+> **现状（2026-10-15）**：**2 条**补丁，均已在 **`patches/v0.12.1/`** 按当前上游 tag 重新生成并生效 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）；上一版基线的 `patches/v0.11.1/` 同名文件**保留可追溯**。
 > 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
 ## 0. 已登记补丁
@@ -9,32 +9,36 @@
 
 | 项 | 内容 |
 |---|---|
-| 文件 | `patches/v0.11.1/0001-workspace-picker-roots.patch` |
+| 文件（v0.11.1 生成，保留可追溯） | `patches/v0.11.1/0001-workspace-picker-roots.patch` |
 | 全局编号 | `P203-1`（只增不改、不复用） |
-| 被 patch 的上游 | `pi-web` tag `v0.11.1`（`e783721`） |
+| 被 patch 的上游（v0.11.1 生成） | `pi-web` tag `v0.11.1`（`e783721`） |
+| 文件（v0.12.1 再生成，**当前生效**） | `patches/v0.12.1/0001-workspace-picker-roots.patch`（61527 B；sha256 `2be18400d3ed13d206b07527ddabfc4d09dd4baa8fbbf89f0cef2ea15b9dafc3`；LF） |
+| 被 patch 的上游（v0.12.1 再生成） | `pi-web` tag **`v0.12.1`**（`f83b1a5`）—— 由 v0.11.1 版补丁按 v0.12.1 上下文再生成（独立 detached worktree：`git worktree add --detach <tmp> v0.12.1` → `git apply` 旧补丁 → `git diff --cached > patches/v0.12.1/…` → `git reset --hard`），**语义未变**（四主目录工作区选择器）；相对 v0.11.1 版**只有三套 `lib/i18n/messages/*.ts` 的 blob 哈希与 hunk 行号差异** —— 上游在 v0.12.1 给这三套 locale 各加 5 行（`git diff --numstat v0.11.1 v0.12.1` = 各 `+26/-12`），表现为 hunk 头 `@@ -279,7 +279,7 @@` → `@@ -284,7 +284,7 @@`；其余 4 个文件逐字节相同 |
 | 触及文件（7） | `lib/directory-browser.ts`（只增 + `getBrowseStartDirectory` 缺省起点）、`app/api/cwd/browse/route.ts`、`app/api/cwd/workspace-permission/route.ts`（新增）、`components/DirectoryPicker.tsx`、`lib/i18n/messages/{zh-CN,en,zh-TW}.ts`（入口文案「自定义路径…」→「选择工作区目录…」） |
 | **触发条件** | pi-web **没有** UI 插槽 / 客户端面插件机制：pi 扩展的 `ctx.ui` 只有 `select`/`confirm`/`input`/`editor` 四种对话框，`custom()` 在 RPC 模式返回 `undefined`（`pi/packages/coding-agent/docs/rpc-extension-ui.md`）。因此「四个主目录 Tab」这一对话框改造**无法**用插件机制实现，也没有任何上游现成机制可替代（对比：PL1 安装闸门有 `PI_OFFLINE` 等三点可选）。 |
 | **实施时机** | 需求 `203-plugin-workspace-picker` 开发期一次性生成；由 `scripts/prepare-next.mjs` 阶段 **1b** 在每次 `next build` 前**幂等应用**（`--reverse --check` 命中即跳过）。 |
 | **替代方案** | ① 纯插件方案：退化为 `ctx.ui.select` 列表，放弃四 Tab 与面包屑围栏（不满足验收标准 AC-1/AC-4，已否决）；② 只改 pi-web 工作树不打补丁：违反「上游工作树零改动」纪律、上游升级即丢失（已否决）；③ 自建独立 UI 页面/路由：改动面最大且重造目录浏览（已否决）。 |
 | 往返校验 | 构建期强制执行「应用 → 反向 → 断言 SHA-256 还原」（FR-203-022），并断言 `lib/directory-browser.ts` 含 `WORKSPACE_ROOTS_ENV`。构建成功后由阶段 6 **自动回退**，pi-web 结束时 pristine（FR-203-023）。另由 `scripts/test-workspace-picker.mjs` 的 44 断言在零设备条件下复验。 |
 | 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；不含 `package-lock.json`、不含二进制。 |
-| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.11.1/0001-workspace-picker-roots.patch` |
+| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.12.1/0001-workspace-picker-roots.patch`（v0.11.1 目录版：`patches/v0.11.1/0001-workspace-picker-roots.patch`） |
 | 规格 | `specs/203-plugin-workspace-picker/`、`docs/203-插件-选择工作区目录.md` |
 
 ### PFIX-1 — 会话导出在「无独立运行时二进制」的设备上回退到进程内导出
 
 | 项 | 内容 |
 |---|---|
-| 文件 | `patches/v0.11.1/0002-session-export-in-process-fallback.patch` |
+| 文件（v0.11.1 生成，保留可追溯） | `patches/v0.11.1/0002-session-export-in-process-fallback.patch` |
 | 全局编号 | `PFIX-1`（只增不改、不复用；缺陷修复补丁，不挂编号需求） |
-| 被 patch 的上游 | `pi-web` tag `v0.11.1`（`e783721`） |
-| 触及文件（1） | `app/api/sessions/[id]/export/route.ts`（`:219` 的 spawn 前置条件加 `existsSync(process.execPath)`） |
+| 被 patch 的上游（v0.11.1 生成） | `pi-web` tag `v0.11.1`（`e783721`） |
+| 文件（v0.12.1 再生成，**当前生效**） | `patches/v0.12.1/0002-session-export-in-process-fallback.patch`（1798 B；sha256 `7b46cb1911d5ae9451b9c7dbdfcacb80c51d647154a65c89eff542eac3e6f439`；LF） |
+| 被 patch 的上游（v0.12.1 再生成） | `pi-web` tag **`v0.12.1`**（`f83b1a5`）—— 由 v0.11.1 版补丁按 v0.12.1 上下文再生成（独立 detached worktree：`git worktree add --detach <tmp> v0.12.1` → `git apply` 旧补丁 → `git diff --cached > patches/v0.12.1/…` → `git reset --hard`），**语义未变**（会话导出进程内回退）；`app/api/sessions/[id]/export/route.ts` 在 v0.11.1→v0.12.1 之间无上游改动（`git diff --numstat v0.11.1 v0.12.1` 无输出），故与 v0.11.1 版**逐字节相同**（`diff` 无输出） |
+| 触及文件（1） | `app/api/sessions/[id]/export/route.ts`（**v0.12.1 再生成后**为 `:222` 的 spawn 前置条件加 `existsSync(process.execPath)`；`patches/v0.11.1/` 版为 `:219` —— 上游 `+5 行偏移`，见 `logs/20261015-1/T03-patches.txt`） |
 | **触发条件** | 真机点「完整历史」→ `/api/sessions/<id>/export` 走 `exportSession()` 的 **spawn CLI** 分支：`execFileAsync(process.execPath, [cliPath, "--export", …])`。设备上 `process.execPath` = `/data/app/electron.org/electron_1.0/bin/electron/electron` —— **该路径不存在**（实测 `fs.existsSync` 为 false），且鸿蒙侧本就没有可用的独立 node/electron 可执行文件，于是 `spawn … ENOENT` → 路由 500，导出页只显示一行 JSON 错误。修前必须先修掉「点『完整历史』闪退」（`PFIX-1` 的上游症状链见 `logs/20261015-crash/`）。 |
 | **实施时机** | 2026-10-15 缺陷修复一并生成；由 `scripts/prepare-next.mjs` 阶段 **1b** 幂等应用（排序在 `0001` 之后，两者触及文件不相交、上下文区间不重叠）。 |
 | **替代方案** | ① 让设备侧能 spawn：需鸿蒙可用的 node/electron 可执行文件，环境不具备（`docs/鸿蒙环境能力清单-v0.11.1.md` 已登记 spawn/PTY 不可用），且不在本工程可改范围（已否决）；② 把 `dist/cli.js` 从 pi-dist 载荷中删掉以让 `getPiCliPath()` 返回 null：会牵连其它依赖 CLI 的路径，且是「靠删文件改变分支」的隐式耦合（已否决）；③ 在壳侧伪造 `process.execPath`：无法改变「设备上确实没有该二进制」的事实（已否决）。 |
 | 往返校验 | 构建期强制执行「应用 → 反向 → 断言 SHA-256 还原」。构建成功后由阶段 6 **自动回退**，pi-web 结束时 pristine。 |
 | 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；另在该 worktree 内验证「pristine 可应用」「先 0001 再 0002 不冲突」「两条往返后残留 0」。 |
-| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.11.1/0002-session-export-in-process-fallback.patch` |
+| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.12.1/0002-session-export-in-process-fallback.patch`（v0.11.1 目录版：`patches/v0.11.1/0002-session-export-in-process-fallback.patch`） |
 | 规格 | `logs/20261015-crash/`（崩溃取证与修复记录） |
 
 ---
@@ -156,3 +160,41 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 - 补偿面核对：`runtime-overlays/`（23 个文件）与 `extensions/harmony-runtime.js` 均**不覆盖**
   `pi` / `pi-web` 的任何文件，因此候选 1–8 **都没有**「已经由 overlay 变相补掉」的情况。
   `config/` 是候选 2 的落地补偿（`settings.json` 不含 `packages` + `PI_OFFLINE=1`）。
+
+---
+
+## v0.12.1 基线复核（2026-10-15，需求 101-version-0.12.1）
+
+上游基线**升级**：`pi` `v1.1.0` → **`v1.2.0`**（`Branch_v1.2.0`，commit `06a466935536f8c9bcacb2d5efc0fc021be1bdff`；`git -C ../pi tag --points-at HEAD` = `v1.2.0`）；`pi-web` `v0.11.1` → **`v0.12.1`**（`Branch_v0.12.1`，剥离 commit `f83b1a502f8e434555a7153fe08e1c135dd65ca9`，与分支 HEAD 相同）。两者工作树干净（`git status --porcelain` 为空）。**本轮复核对上游只读**，逐条重读源码/文件，结论按「文件 : 位置」留痕。
+
+**复核结论：**
+
+1. `P203-1`、`PFIX-1` **仍然必需**，已在 `patches/v0.12.1/` **按 v0.12.1 上下文重新生成**（§0 已登记为当前生效项），并跑通验收三断言（`git apply --check` 通过 / 语义守卫命中 / 应用→反向→逐文件 SHA-256 还原；原始输出见 `logs/20261015-1/T03-patches.txt`）。§1「本版本为空、不建目录」的结论自 v0.11.1 起已被推翻，本轮沿用。
+2. 候选 1–8 逐条复核后**仍不新增补丁**（见下表）；候选 8 的结论由「待决策」更新为「**不需要补丁**」（根因已由壳扩展同名顶替 `bash` 关闭）。
+3. 本轮**未发现新的必须补丁项**（检查范围与局限见表后说明）。
+
+### 1. 两条既有补丁：为什么仍然必需
+
+| 编号 | 结论 | 复核依据 |
+|---|---|---|
+| `P203-1` | **必需**，已再生成 | ① pi-web 仍**没有**可承载「四主目录 Tab + 只向下浏览围栏」对话框的接缝：上游扩展 UI 面仍是 `pi/packages/coding-agent/src/core/extensions/types.ts:151`（`select`）/`:154`（`confirm`）/`:157`（`input`）/`:240`（`editor`）/`:213-214`（`custom`），而 `:328` 明确注明 `custom` 是**终端组件**（「Current run mode. Use "tui" to guard terminal-only UI such as custom components.」）—— 没有任何 Web UI 插槽（完整论证见 §0 触发条件行）。② 被 patch 文件相对 v0.11.1 的上游改动面：`git -C ../pi-web diff --numstat v0.11.1 v0.12.1 -- components/DirectoryPicker.tsx lib/directory-browser.ts app/api/cwd/browse/route.ts lib/i18n/messages/{en,zh-CN,zh-TW}.ts` **只**输出三套 `lib/i18n/messages/*.ts`（各 `+26/-12`）；新增文件 `app/api/cwd/workspace-permission/route.ts` 在 v0.12.1 上游不存在（`git ls-tree -r --name-only v0.12.1` 无命中）。③ 改动面与语义因此不变，唯一变化是 i18n 三文件的 **+5 行上下文偏移**（hunk 头 `@@ -279,7` → `@@ -284,7`，见 §0 登记）。 |
+| `PFIX-1` | **必需**，已再生成 | 触发条件是**本工程运行时形态**（主进程进程内宿主 + 设备上无独立 node/electron 可执行文件 → `process.execPath` 不存在 → spawn 分支必须跳过），上游升级不会改变它；`app/api/sessions/[id]/export/route.ts` 在 v0.11.1→v0.12.1 之间**无上游改动**（同一条 `diff --numstat` 无输出），故再生成的补丁与 v0.11.1 版**逐字节相同**。设备侧复测结论见 `docs/鸿蒙环境能力清单-v0.12.1.md`（⬜ 本版 T10 产出；本节不复述旧结论）。 |
+
+### 2. 候选 1–8 对**新基线**的复核（结论不变：不需要补丁）
+
+| # | 候选 | 结论 | 本轮复核依据（`pi` v1.2.0 / `pi-web` v0.12.1） |
+|---|---|---|---|
+| 1 | Node 版本门禁 | 不需要补丁 | `pi-web/bin/node-version.js:3` `MIN_NODE_VERSION = "22.19.0"` 仍在；唯一导入点 `pi-web/bin/pi-web.js:5`；`pi-web/package.json:15` 只有 `engines.node >= 22.19.0`（无 `engine-strict`）。本工程入口 `src-main/main.js` 不经 `bin/pi-web.js`，门禁不触发。 |
+| 2 | 插件/包安装闸门 | 不需要补丁 | `pi/packages/coding-agent/src/core/package-manager.ts:121`（`resolve(onMissing?)` 接口）/`:926`（实现）/`:60`（`isOfflineModeEnabled()`）/`:1309`（`installMissing()` 闭包**首行**短路 `return false`）/`:1366`（`resolveLocalExtensionSource()`）；另有 offline 短路 `:1129/:1224/:1522/:1573/:2027`；`PI_OFFLINE` 读取点 `:61`。本工程 `src-main/main.js` 置 `PI_OFFLINE=1`。 |
+| 3 | `node:sqlite` 不可用 | 不需要补丁 | 硬顶层 import 仍只在 `pi/packages/durable/src/storage/sqlite/node.ts:3-4`（`migrations.ts:8` 只是注释）；`pi/packages/coding-agent/package.json` **无** durable 依赖；`pi-web/node_modules/@earendil-works/` 下只有 `chord`/`pi-agent-core`/`pi-ai`/`pi-codemode`/`pi-coding-agent`/`pi-mcp`/`pi-telemetry`/`pi-tui` → 代码路径不可达。 |
+| 4 | zstd / 其它新 Node API | 不需要补丁 | 守卫仍在 `pi/packages/ai/src/api/openai-codex-responses.ts:220` `if (!zlib || typeof zlib.zstdCompressSync !== "function")`（`zlib` 经 `process.getBuiltinModule?.` 取，缺失即返回 `null`）；pi-web 自身零使用。 |
+| 5 | 原生模块（PTY / sharp / koffi） | 不需要补丁 | `pi-web/package.json:62` `node-pty: 1.2.0-beta.15`；唯一使用是 `pi-web/lib/terminal-manager.ts:3`（`import type`，不触发加载）+ `:80/:84` 函数体内 `require("node-pty")` 的 try/catch（失败即终端面板降级）；`pi-web/next.config.ts:30` `images: { unoptimized: true }` 仍绕过 sharp。 |
+| 6 | 网络绑定 / Host·Origin 头改写 | 不需要补丁 | `pi-web/lib/request-security.ts:97` `if (isLoopbackHostname(hostname) || isIP(hostname)) return true;`；同源判定仍在 `:138-139`（`canonicalOrigin(origin) === requestOrigin`，origin 由 `protocol + host` 构造）→ 局域网 IP 字面量与同源请求天然通过，无需头改写。 |
+| 7 | symlink / hardlink / chmod 回退 | 不需要补丁（残余观察项） | 创建型调用仍为 **0 处**（`symlinkSync`/`linkSync` 只出现在 `pi-web/lib/*.test.mjs`）；`chmodSync` 仍为 4 处：`pi-web/lib/global-settings-file.ts:70`、`lib/mcp-config-file.ts:324`、`lib/provider-credential-store.ts:20,62`；真机行为见能力清单（沙箱 `hmfs` 的 `chmod` 如实生效）。 |
+| 8 | `pi` 的 `bash` 工具等待子进程结束 | **不需要补丁**（结论由「待决策」更新） | 上游该处**仍以事件为前置**：`pi/packages/coding-agent/src/core/tools/bash.ts:148` `await waitForChildProcess(child)` → `utils/child-process.ts:49`（决策路径仍是 `stdout`/`stderr` 的 `end` + `exit`/`close` 事件；v1.2.0 的 docblock 改为「`exit` 后等管道空闲、宽限计时器随每个 chunk 重新武装，参考 earendil-works/pi#5303」，**仍无轮询、无绝对截止时间**）。本工程**不再需要**该补丁：R14 已由**壳扩展同名顶替 `bash`**（`extensions/harmony-exec.js`，需求 `102-harmony-js-tools`）关闭，真机轮次 3 / 3b / 6 复验通过（`docs/工程规划.md` §1.2 表、§11.1）。⚠️ 若将来改回上游 `bash` 工具，该缺口仍在。 |
+
+### 3. 复核方式与局限
+
+- 方式：`git -C ../pi`（`Branch_v1.2.0`）与 `git -C ../pi-web`（`Branch_v0.12.1`）**只读**（`git status --porcelain` 为空），逐条 `grep` + 读源码；补丁再生成与三断言在**独立 detached worktree** 上完成（`logs/20261015-1/T03-patches.txt`），收尾已 `worktree remove --force`，`pi-web` 保持 pristine。
+- 局限（**未核实**，不得当作已证）：① 本轮**只复核了上表逐条列出的文件 : 位置**，不是全量代码审计；② `child.exitCode` 的语义仍只在「Node 内部实现约定 + 真机事件数组为空」上推断，未做源码级核实；③ `spawnSync` 在真机是否同样卡住未实测；④ 上游 `engines >= 22.19.0` 的具体技术动因仍未查（CHANGELOG 未给原因）；⑤ `PFIX-1` 的触发条件（设备侧 spawn / `process.execPath`）在**本版新产物**上的复测结论 ⬜ 待 `docs/鸿蒙环境能力清单-v0.12.1.md`（本轮 T10）。
+- 补偿面核对：沿用上一节的结论 —— `runtime-overlays/` 与 `extensions/harmony-runtime.js` **不覆盖** `pi`/`pi-web` 的任何文件，故候选 1–8 都没有「已被 overlay 变相补掉」的情况；本轮**未**重新逐文件比对 ⬜。

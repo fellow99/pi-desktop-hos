@@ -11,16 +11,17 @@
 > HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
 > The UI is reused 100% from upstream; the frontend is not forked.
 
-**Version**: `0.11.1` / `versionCode` `1101` (**built and verified via signed on-device deployment**,
+**Version**: `0.12.1` / `versionCode` `1201` (**built and verified via signed on-device deployment**,
 see [docs/真机验证记录.md](docs/真机验证记录.md))
-· **Upstream baseline**: `pi` **v1.1.0** (`Branch_v1.1.0`) + `pi-web` **v0.11.1** (`Branch_v0.11.1`)
+· **Upstream baseline**: `pi` **v1.2.0** (`Branch_v1.2.0`) + `pi-web` **v0.12.1** (`Branch_v0.12.1`)
 · **Runtime**: Electron **37.2.3** (Node **22.17.0** / ABI **v138**; on the HarmonyOS side via the `harmonypc-electron` runtime)
 · **App name / bundle name**: `Pi Desktop` / `org.fellow99.pi.PiDesktop`
 
 The full engineering plan and delivery record live in **[docs/工程规划.md](docs/工程规划.md)**;
 the **authoritative** document for device-side capability conclusions is
-**[docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md)** (with revision sections
-**REV-1** / **REV-2**; where they conflict with the earlier sections, the revisions win).
+**[docs/鸿蒙环境能力清单-v0.12.1.md](docs/鸿蒙环境能力清单-v0.12.1.md)** (this version's round;
+the 0.11.1-round inventory **[docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md)**
+— revision sections **REV-1** / **REV-2** — is kept for comparison).
 
 ---
 
@@ -50,6 +51,7 @@ for more complex ones.
 |---|---|---|---|
 | `001-host` | [specs/001-host/](specs/001-host/) | Host: environment wiring, in-process Next server, HTTP-polling readiness check, random password and credential injection | Round 1 |
 | `101-version-0.11.1` | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | Version convergence to `0.11.1` / `1101`; full-pipeline rebuild after cleaning intermediates with byte-level reproducibility; capability inventory produced | Rounds 2, 2b |
+| `101-version-0.12.1` | [specs/101-version-0.12.1/](specs/101-version-0.12.1/) | Version convergence to `0.12.1` / `1201`; upstream rebase to `pi` v1.2.0 + `pi-web` v0.12.1 with the two existing patches re-evaluated and regenerated under `patches/v0.12.1/`; full-pipeline rebuild; capability inventory re-measured | Round 7 |
 | `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | **Pure-JS extensions** shipped in the HAP take over `bash` / `find` / `grep` under the same tool names; **zero upstream or patch changes** | Rounds 3, 3b, 3c |
 | `103-branding` | [specs/103-branding/](specs/103-branding/) | UI branding switched to `Pi Desktop`, Logo/icons generated from parent-project assets, new-version check disabled (zero upstream changes) | Round 4 |
 
@@ -107,8 +109,8 @@ container repository):
 
 ```
 pi-workspace/
-├── pi/                                 # [submodule] upstream host + SDK, pinned to Branch_v1.1.0
-├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.11.1
+├── pi/                                 # [submodule] upstream host + SDK, pinned to Branch_v1.2.0
+├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.12.1
 ├── harmonypc-electron/                 # [submodule] Electron-on-HarmonyOS runtime (shell + manifest)
 ├── harmonypc-electron-versions/        # (plain dir, gitignored) v37 archive + native module material
 ├── assets/                             # parent-project brand assets (logo-1024-with-bg.png / logo.png / logo.svg)
@@ -282,7 +284,7 @@ See [skills/harmony-runtime-capabilities/SKILL.md](skills/harmony-runtime-capabi
 | Document | Contents |
 |---|---|
 | [docs/工程规划.md](docs/工程规划.md) | **Engineering plan (source of truth)**: what to build, how, in what order, and the risks |
-| [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md) | **Authoritative** device-capability inventory (capability × status × root-cause layer L1–L4 + evidence + REV-1/REV-2) |
+| [docs/鸿蒙环境能力清单-v0.12.1.md](docs/鸿蒙环境能力清单-v0.12.1.md) | **Authoritative** device-capability inventory (capability × status × root-cause layer L1–L4 + evidence; this version's round). The 0.11.1-round inventory [docs/鸿蒙环境能力清单-v0.11.1.md](docs/鸿蒙环境能力清单-v0.11.1.md) (**REV-1/REV-2**) is kept for comparison |
 | [docs/真机验证记录.md](docs/真机验证记录.md) | Per-round device-verification environment, steps and conclusions (rounds 0–4) |
 | [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | Icon assets and generation rules (requirement 103) |
 | [docs/ACL申请清单.md](docs/ACL申请清单.md) | ACL application manual: the 3 restricted permissions with ready-to-paste text, the 21 open permissions, and what *not* to apply for |

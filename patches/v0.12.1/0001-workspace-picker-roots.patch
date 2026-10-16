@@ -1,0 +1,1294 @@
+diff --git a/app/api/cwd/browse/route.ts b/app/api/cwd/browse/route.ts
+index f63936b..433d63f 100644
+--- a/app/api/cwd/browse/route.ts
++++ b/app/api/cwd/browse/route.ts
+@@ -5,15 +5,82 @@ import {
+   createDirectory,
+   getBrowseStartDirectory,
+   getParentDirectory,
++  getWorkspaceRoots,
++  isPathInsideRoot,
+   listDirectories,
+   listWindowsDrives,
++  listWorkspaceEntries,
+   resolveDirectory,
++  resolveWorkspaceRoot,
+   shouldShowWindowsDrivePicker,
+ } from "@/lib/directory-browser";
+ 
+ // GET /api/cwd/browse?path=...：列出文件系统中的可读子目录。
++// GET /api/cwd/browse?root=<id>[&path=...]（pi-desktop-hos 203-plugin-workspace-picker）：
++//   在壳注入的某个工作区主目录内列目录；响应附带 `roots` 供对话框渲染主目录 Tab。
+ export async function GET(request: NextRequest) {
++  // pi-desktop-hos 203：壳主进程经 PI_HOS_ROOTS 注入的四个工作区主目录。
++  // 未注入时为空数组 —— root 分支不可达，行为与本补丁之前完全一致。
++  // 刻意声明在 try 之外：任何失败路径都要把 `roots` 带回去，否则一次读取失败就会让
++  // 四个主目录 Tab 一起消失（正是本需求要解决的入口问题）。
++  const workspaceRoots = getWorkspaceRoots();
++
+   try {
++
++    if (workspaceRoots.length > 0) {
++      const requestedRootId = request.nextUrl.searchParams.get("root")?.trim() ?? "";
++      const requestedPath = request.nextUrl.searchParams.get("path")?.trim() ?? "";
++
++      if (requestedRootId) {
++        const root = resolveWorkspaceRoot(requestedRootId);
++        if (!root) {
++          // 未知 id 必须报错：绝不回退到另一个主目录（根围栏）。
++          return NextResponse.json(
++            { error: `Unknown workspace root: ${requestedRootId}`, roots: workspaceRoots },
++            { status: 404 },
++          );
++        }
++        try {
++          const listing = await listWorkspaceEntries(root, requestedPath || undefined);
++          return NextResponse.json({
++            roots: workspaceRoots,
++            rootId: listing.rootId,
++            rootPath: listing.rootPath,
++            path: listing.path,
++            parentPath: null,
++            directories: listing.entries,
++            truncated: listing.truncated,
++          });
++        } catch (error) {
++          const message = error instanceof Error ? error.message : String(error);
++          if (message === "Directory does not exist") {
++            return NextResponse.json({ error: message, roots: workspaceRoots, rootId: root.id }, { status: 404 });
++          }
++          if (message === "Path is outside the selected workspace root") {
++            return NextResponse.json({ error: message, roots: workspaceRoots, rootId: root.id }, { status: 403 });
++          }
++          const code = errorCodeOf(error);
++          if (code === "EACCES" || code === "EPERM") {
++            // 未授权：把可判定的权限类型一并回给客户端，供对话框给出准确归因。
++            return NextResponse.json(
++              {
++                error: "Permission denied",
++                code,
++                permType: root.permType,
++                roots: workspaceRoots,
++                rootId: root.id,
++              },
++              { status: 403 },
++            );
++          }
++          if (code === "ENOENT") {
++            return NextResponse.json({ error: "Directory does not exist", code, roots: workspaceRoots, rootId: root.id }, { status: 404 });
++          }
++          return NextResponse.json({ error: message, code, roots: workspaceRoots, rootId: root.id }, { status: 500 });
++        }
++      }
++    }
++
+     const requested = request.nextUrl.searchParams.get("path")?.trim();
+ 
+     if (shouldShowWindowsDrivePicker(requested)) {
+@@ -22,6 +89,7 @@ export async function GET(request: NextRequest) {
+         parentPath: null,
+         drives: await listWindowsDrives(),
+         directories: [],
++        roots: workspaceRoots,
+       });
+     }
+ 
+@@ -31,12 +99,12 @@ export async function GET(request: NextRequest) {
+     try {
+       resolved = await resolveDirectory(candidate);
+     } catch {
+-      return NextResponse.json({ error: "Directory does not exist" }, { status: 404 });
++      return NextResponse.json({ error: "Directory does not exist", roots: workspaceRoots }, { status: 404 });
+     }
+ 
+     const directoryStat = await stat(resolved);
+     if (!directoryStat.isDirectory()) {
+-      return NextResponse.json({ error: "Path is not a directory" }, { status: 400 });
++      return NextResponse.json({ error: "Path is not a directory", roots: workspaceRoots }, { status: 400 });
+     }
+ 
+     const directories = await listDirectories(resolved);
+@@ -45,12 +113,17 @@ export async function GET(request: NextRequest) {
+       path: resolved,
+       parentPath: getParentDirectory(resolved),
+       directories,
++      roots: workspaceRoots,
+     });
+   } catch (error) {
+-    return NextResponse.json({ error: String(error) }, { status: 500 });
++    return NextResponse.json({ error: String(error), roots: workspaceRoots }, { status: 500 });
+   }
+ }
+ 
++function errorCodeOf(error: unknown): string {
++  return error && typeof error === "object" && "code" in error ? String((error as { code: unknown }).code) : "";
++}
++
+ // POST /api/cwd/browse  body: { path: string, name: string }
+ // Creates one direct child of the currently browsed directory.
+ export async function POST(request: Request) {
+@@ -73,12 +146,29 @@ export async function POST(request: Request) {
+       return NextResponse.json({ error: "Directory name is required" }, { status: 400 });
+     }
+ 
++    // 纵深防御：主目录已声明时，只允许在这些根**之内**建目录。UI 层已经没有手输路径入口，
++    // 但这条路由本身是全盘可写的，凡是有边界的入口都应把边界写在服务端。
++    const declaredRoots = getWorkspaceRoots();
++    if (declaredRoots.length > 0) {
++      const resolvedParent = await resolveDirectory(parentPath).catch(() => null);
++      if (!resolvedParent) {
++        return NextResponse.json({ error: "Parent directory does not exist" }, { status: 404 });
++      }
++      const insideDeclaredRoot = declaredRoots.some((root) =>
++        isPathInsideRoot(root.path, resolvedParent),
++      );
++      if (!insideDeclaredRoot) {
++        return NextResponse.json(
++          { error: "Parent path is outside the declared workspace roots", roots: declaredRoots },
++          { status: 403 },
++        );
++      }
++    }
++
+     const createdPath = await createDirectory(parentPath, name);
+     return NextResponse.json({ success: true, path: createdPath });
+   } catch (error) {
+-    const code = error && typeof error === "object" && "code" in error
+-      ? String(error.code)
+-      : "";
++    const code = errorCodeOf(error);
+     if (code === "EEXIST") {
+       return NextResponse.json({ error: "A file or directory with this name already exists" }, { status: 409 });
+     }
+diff --git a/app/api/cwd/workspace-permission/route.ts b/app/api/cwd/workspace-permission/route.ts
+new file mode 100644
+index 0000000..a8f08e5
+--- /dev/null
++++ b/app/api/cwd/workspace-permission/route.ts
+@@ -0,0 +1,86 @@
++import { NextResponse } from "next/server";
++import { getWorkspaceRoots } from "@/lib/directory-browser";
++import { hasJsonContentType, isApiRequestAllowed } from "@/lib/request-security";
++
++/**
++ * pi-desktop-hos — 203-plugin-workspace-picker（本文件为下游新增，上游无对应物）
++ *
++ * 「选择工作区目录」对话框在遇到 EACCES/EPERM 时的**权限预检**与**去系统设置**入口。
++ *
++ * 为什么需要这条路由：权限能力（`electron.systemPreferences.checkPermission` /
++ * `openApplicationInfoEntry`）只存在于**主进程**；本 Next 服务器与主进程同进程，
++ * 由壳的 `src-main/main.js#installPermissionBridge` 挂在 `globalThis.__PI_HOS_PERMISSION__`。
++ * 渲染进程读不到它，所以这里做一层**同源**转发。
++ *
++ * 边界：只暴露两个动作（只读预检 / 跳系统设置），不承载任何业务数据，不写文件，
++ * 不接受入参中的任意权限名（只接受壳声明的四个 root id 对应的 permType）。
++ */
++
++interface PermissionBridge {
++  available: boolean;
++  check?: (permType: string) => boolean | undefined;
++  openAppInfo?: () => boolean;
++}
++
++function bridge(): PermissionBridge | null {
++  const candidate = (globalThis as Record<string, unknown>).__PI_HOS_PERMISSION__;
++  if (!candidate || typeof candidate !== "object") return null;
++  return candidate as PermissionBridge;
++}
++
++/** 只接受壳在 PI_HOS_ROOTS 里声明过的 permType —— 其它一律忽略（不做任意权限探测）。 */
++function declaredPermTypes(): Set<string> {
++  return new Set(
++    getWorkspaceRoots()
++      .map((root) => root.permType)
++      .filter((permType): permType is string => Boolean(permType)),
++  );
++}
++
++// GET /api/cwd/workspace-permission -> { available, grants: { [permType]: boolean|null } }
++export async function GET() {
++  const b = bridge();
++  const available = Boolean(b && b.available === true && typeof b.check === "function");
++  const grants: Record<string, boolean | null> = {};
++  for (const permType of declaredPermTypes()) {
++    // null = 不可判定；客户端据此显示「不可判定」而不是把它当作「未授权」。
++    grants[permType] = available ? b!.check!(permType) ?? null : null;
++  }
++  return NextResponse.json({ available, grants });
++}
++
++// POST /api/cwd/workspace-permission  body: { action: "openAppInfo" }
++export async function POST(request: Request) {
++  // 与 app/api/cwd/browse 的同源写接口保持同一套前置校验（proxy.ts 已做 host/origin + 口令，
++  // 这里是路由层的纵深防御与一致性）。
++  if (!isApiRequestAllowed(request)) {
++    return NextResponse.json({ error: "Untrusted API request" }, { status: 403 });
++  }
++  if (!hasJsonContentType(request)) {
++    return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
++  }
++
++  let body: { action?: unknown };
++  try {
++    body = await request.json() as { action?: unknown };
++  } catch {
++    return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
++  }
++
++  if (body.action !== "openAppInfo") {
++    return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
++  }
++
++  const b = bridge();
++  if (!b || typeof b.openAppInfo !== "function") {
++    // fail-visible：桥不可用时明确失败，让对话框给出归因，绝不假装成功。
++    return NextResponse.json({ error: "Permission bridge is unavailable", available: false }, { status: 503 });
++  }
++
++  try {
++    const ok = b.openAppInfo();
++    return NextResponse.json({ ok: ok === true });
++  } catch (error) {
++    return NextResponse.json({ error: String(error) }, { status: 500 });
++  }
++}
+diff --git a/components/DirectoryPicker.tsx b/components/DirectoryPicker.tsx
+index 433cd89..9495afa 100644
+--- a/components/DirectoryPicker.tsx
++++ b/components/DirectoryPicker.tsx
+@@ -1,19 +1,57 @@
+ "use client";
+ 
+-import { type CSSProperties, type FormEvent, useCallback, useEffect, useState } from "react";
++import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+ import { createPortal } from "react-dom";
+ import { useI18n } from "@/hooks/useI18n";
+ 
++/**
++ * pi-desktop-hos — 203-plugin-workspace-picker（本组件实现为下游改写，签名与上游一致）
++ *
++ * 与原实现的差异（需求 203，见 docs/203-插件-选择工作区目录.md）：
++ *   · 顶部四个**工作区主目录** Tab（沙箱/桌面/文档/下载），切换即重置浏览栈；
++ *   · **移除自由文本路径输入**与「上级目录」按钮，改为相对主目录根的面包屑
++ *     —— UI 层不再存在提交任意绝对路径的入口（根围栏，安全属性）；
++ *   · 只列目录、不渲染隐藏项（服务端已过滤），触顶时展示截断提示；
++ *   · 新建文件夹给出默认名并在同级去重，创建后自动选中；
++ *   · EACCES/EPERM 时给出归因 + 「去系统设置」（经 /api/cwd/workspace-permission 转发）；
++ *   · 主目录选择持久化到 localStorage，只记主目录、不记子路径。
++ *
++ * 主目录清单来自壳的主进程（经 `PI_HOS_ROOTS`），由 `/api/cwd/browse` 随每次响应带回。
++ *
++ * 关于**没有主目录**的退化（pi-web 独立运行 / 壳未注入环境变量）：`roots` 为空时顶部 Tab 行
++ * 不渲染，列表本身仍可浏览与下钻（响应里的 `directories`），但**没有**路径输入、也没有
++ * 「上级目录」按钮 —— 视觉上只有向下的单向导航。需要向上时刷新页面重开。这是刻意接受的
++ * 退化：这些入口正是需求 203 要移除的手输路径通道。
++ *
++ * 外部契约不变：`export function DirectoryPicker({ onCancel, onSelect, initialPath, busy, error })`，
++ * 仍以 `onSelect(绝对路径)` 作为唯一提交点，采纳链路（/api/cwd/validate → createWorkspace）不变。
++ */
++
+ interface DirectoryEntry {
+   name: string;
+   path: string;
+ }
+ 
++interface WorkspaceRootInfo {
++  id: string;
++  label: string;
++  path: string;
++  permType: string | null;
++}
++
+ interface BrowseResponse {
+   path?: string;
+   parentPath?: string | null;
+   directories?: DirectoryEntry[];
+   drives?: DirectoryEntry[];
++  roots?: WorkspaceRootInfo[];
++  rootId?: string;
++  rootPath?: string;
++  truncated?: boolean;
++  /** 服务端在权限失败时回传的错误码（EACCES / EPERM）。 */
++  code?: string;
++  /** 该主目录对应的 OS 权限类型，供归因与「去系统设置」使用。 */
++  permType?: string | null;
+   error?: string;
+ }
+ 
+@@ -23,6 +61,122 @@ interface CreateDirectoryResponse {
+   error?: string;
+ }
+ 
++/** 主目录选择的持久化键（只存 root id，不存子路径）。 */
++const ROOT_STORAGE_KEY = "pi-hos.workspacePicker.rootId";
++
++const DEFAULT_ROOT_ID = "sandbox";
++
++/** 主目录 id → 本地化标签；服务端只负责 id，文案留在 UI 层（便于 i18n）。 */
++const ROOT_LABELS: Record<string, Record<string, string>> = {
++  en: { sandbox: "Sandbox", desktop: "Desktop", documents: "Documents", download: "Downloads" },
++  "zh-CN": { sandbox: "沙箱", desktop: "桌面", documents: "文档", download: "下载" },
++  "zh-TW": { sandbox: "沙箱", desktop: "桌面", documents: "文件", download: "下載" },
++};
++
++interface LocalText {
++  workspaceLocation: string;
++  untitledFolder: string;
++  numbered: (name: string, n: number) => string;
++  permissionTitle: (label: string) => string;
++  permissionBody: string;
++  permissionUnknown: string;
++  readFailedTitle: (label: string) => string;
++  readFailedBody: string;
++  transientTitle: (label: string) => string;
++  transientBody: string;
++  goToSettings: string;
++  openingSettings: string;
++  settingsOpenFailed: string;
++  retry: string;
++  truncated: string;
++  rootsUnavailable: string;
++  loadingRoots: string;
++  enterFolder: string;
++  selected: string;
++}
++
++const LOCAL_TEXT: Record<string, LocalText> = {
++  en: {
++    workspaceLocation: "Workspace location",
++    untitledFolder: "Untitled folder",
++    numbered: (name, n) => `${name} ${n}`,
++    permissionTitle: (label) => `${label} needs permission`,
++    permissionBody:
++      "This folder is a system user directory. Allow Pi Desktop access to it in Settings → Apps → Pi Desktop → Allow access, then restart the app and retry.",
++    permissionUnknown:
++      "The permission status could not be determined on this build, so this folder may be unavailable until access is granted in system settings.",
++    readFailedTitle: (label) => `Cannot read ${label}`,
++    readFailedBody: "The folder could not be read. Check that it still exists and is accessible, then retry.",
++    transientTitle: (label) => `Cannot read ${label} right now`,
++    transientBody:
++      "Permission for this folder is already granted, so this looks like a temporary failure. Retry, or reopen the dialog.",
++    goToSettings: "Open system settings",
++    openingSettings: "Opening…",
++    settingsOpenFailed: "Could not open system settings. Open them manually: Settings → Apps → Pi Desktop → Allow access.",
++    retry: "Retry",
++    truncated: "Showing the first 1000 folders in this directory; others are hidden.",
++    rootsUnavailable: "Workspace locations are unavailable on this device; browsing starts at the sandbox.",
++    loadingRoots: "Loading workspace locations…",
++    enterFolder: "Open folder",
++    selected: "selected",
++  },
++  "zh-CN": {
++    workspaceLocation: "工作区位置",
++    untitledFolder: "未命名文件夹",
++    numbered: (name, n) => `${name} ${n}`,
++    permissionTitle: (label) => `「${label}」需要在系统设置中授权`,
++    permissionBody:
++      "该目录是系统用户目录。请在 设置 → 应用 → Pi Desktop → 允许访问 中开启对应权限，然后重启应用并重试。",
++    permissionUnknown:
++      "本构建无法判定该目录的授权状态；在系统设置中授权之前，该目录可能一直不可用。",
++    readFailedTitle: (label) => `无法读取「${label}」`,
++    readFailedBody: "该目录读取失败。请确认它仍然存在且可访问，然后重试。",
++    transientTitle: (label) => `「${label}」暂时无法读取`,
++    transientBody: "该目录的权限已经授予，因此这更像是一次临时失败。请重试，或重新打开对话框。",
++    goToSettings: "去系统设置",
++    openingSettings: "正在打开…",
++    settingsOpenFailed: "无法自动打开系统设置。请手动进入：设置 → 应用 → Pi Desktop → 允许访问。",
++    retry: "重试",
++    truncated: "本目录只显示前 1000 个文件夹，其余已省略。",
++    rootsUnavailable: "本设备上无法读取工作区位置，浏览从沙箱开始。",
++    loadingRoots: "正在读取工作区位置…",
++    enterFolder: "进入文件夹",
++    selected: "已选中",
++  },
++  "zh-TW": {
++    workspaceLocation: "工作區位置",
++    untitledFolder: "未命名資料夾",
++    numbered: (name, n) => `${name} ${n}`,
++    permissionTitle: (label) => `「${label}」需要在系統設定中授權`,
++    permissionBody:
++      "該目錄是系統使用者目錄。請在 設定 → 應用程式 → Pi Desktop → 允許存取 中開啟對應權限，然後重新啟動應用程式並重試。",
++    permissionUnknown:
++      "本建置無法判定該目錄的授權狀態；在系統設定中授權之前，該目錄可能一直無法使用。",
++    readFailedTitle: (label) => `無法讀取「${label}」`,
++    readFailedBody: "該目錄讀取失敗。請確認它仍然存在且可存取，然後重試。",
++    transientTitle: (label) => `「${label}」暫時無法讀取`,
++    transientBody: "該目錄的權限已經授予，因此這更像是一次暫時性失敗。請重試，或重新開啟對話框。",
++    goToSettings: "前往系統設定",
++    openingSettings: "正在開啟…",
++    settingsOpenFailed: "無法自動開啟系統設定。請手動進入：設定 → 應用程式 → Pi Desktop → 允許存取。",
++    retry: "重試",
++    truncated: "本目錄只顯示前 1000 個資料夾，其餘已省略。",
++    rootsUnavailable: "本裝置上無法讀取工作區位置，瀏覽從沙箱開始。",
++    loadingRoots: "正在讀取工作區位置…",
++    enterFolder: "進入資料夾",
++    selected: "已選取",
++  },
++};
++
++function localText(locale: string): LocalText {
++  return LOCAL_TEXT[locale] ?? LOCAL_TEXT.en;
++}
++
++function labelForRoot(locale: string, root: WorkspaceRootInfo): string {
++  const labels = ROOT_LABELS[locale] ?? ROOT_LABELS.en;
++  return labels[root.id] ?? root.label ?? root.id;
++}
++
+ const panelSurfaceStyle: CSSProperties = {
+   overflow: "hidden",
+   background: "var(--bg)",
+@@ -64,11 +218,35 @@ const secondaryActionStyle: CSSProperties = {
+   color: "var(--text-muted)",
+ };
+ 
+-async function loadDirectories(directory?: string): Promise<BrowseResponse> {
+-  const query = directory ? `?path=${encodeURIComponent(directory)}` : "";
+-  const response = await fetch(`/api/cwd/browse${query}`);
++interface BrowseQuery {
++  root?: string;
++  path?: string;
++}
++
++interface BrowseFailure extends Error {
++  code?: string;
++  permType?: string | null;
++  roots?: WorkspaceRootInfo[];
++}
++
++/**
++ * 列目录。响应里的 `roots` 一律回报给调用方 —— 包括**失败**响应，
++ * 这样即使某个主目录读不了，四个 Tab 仍然立得起来（否则失败即失去全部入口）。
++ */
++async function loadDirectories({ root, path }: BrowseQuery): Promise<BrowseResponse> {
++  const params = new URLSearchParams();
++  if (root) params.set("root", root);
++  if (path) params.set("path", path);
++  const query = params.toString();
++  const response = await fetch(`/api/cwd/browse${query ? `?${query}` : ""}`);
+   const data = await response.json() as BrowseResponse;
+-  if (!response.ok || data.error) throw new Error(data.error ?? `HTTP ${response.status}`);
++  if (!response.ok || data.error) {
++    const failure = new Error(data.error ?? `HTTP ${response.status}`) as BrowseFailure;
++    failure.code = data.code;
++    failure.permType = data.permType ?? null;
++    failure.roots = data.roots;
++    throw failure;
++  }
+   return data;
+ }
+ 
+@@ -85,6 +263,69 @@ async function createDirectory(parentPath: string, name: string): Promise<string
+   return data.path;
+ }
+ 
++/**
++ * 只读预检：本构建能否判定权限，以及各 permType 的授权状态。
++ *
++ * ⚠️ 真机实测（logs/20261014-2/T24-permission-granted.txt）：**`checkPermission` 返回 `false`
++ * 并不代表不可用** —— 授予权限后实际读写成功，它仍返回 `false`。因此这里的结果只用来
++ * **区分失败话术**（「已授权 → 更像临时失败」vs「未授权 → 去系统设置」），**绝不**用作门禁，
++ * 也绝不因为它是 `false` 就阻止重试。
++ */
++async function loadPermissionGrants(): Promise<{ available: boolean; grants: Record<string, boolean | null> }> {
++  try {
++    const response = await fetch("/api/cwd/workspace-permission");
++    if (!response.ok) return { available: false, grants: {} };
++    const data = await response.json() as { available?: boolean; grants?: Record<string, boolean | null> };
++    return { available: data.available === true, grants: data.grants ?? {} };
++  } catch {
++    return { available: false, grants: {} };
++  }
++}
++
++/** 请主进程深链到本应用信息页（「去系统设置」）。返回是否成功。 */
++async function openAppInfo(): Promise<boolean> {
++  try {
++    const response = await fetch("/api/cwd/workspace-permission", {
++      method: "POST",
++      headers: { "Content-Type": "application/json" },
++      body: JSON.stringify({ action: "openAppInfo" }),
++    });
++    const data = await response.json() as { ok?: boolean };
++    return response.ok && data.ok === true;
++  } catch {
++    return false;
++  }
++}
++
++function readStoredRootId(validIds: Set<string>): string | null {
++  try {
++    const stored = window.localStorage.getItem(ROOT_STORAGE_KEY);
++    if (!stored) return null;
++    // 非法存储值（不属于四个主目录 id）一律回退到沙箱，见 FR-203-018。
++    return validIds.has(stored) ? stored : null;
++  } catch {
++    return null;
++  }
++}
++
++function writeStoredRootId(rootId: string): void {
++  try {
++    window.localStorage.setItem(ROOT_STORAGE_KEY, rootId);
++  } catch {
++    // 私有模式或存储不可用：记忆功能失效，不影响本次操作。
++  }
++}
++
++/** 默认名去重：`未命名文件夹` 已存在则依次尝试 `未命名文件夹 2`、`3`… */
++function nextUntitledName(existing: Set<string>, untitled: string, numbered: (name: string, n: number) => string): string {
++  if (!existing.has(untitled)) return untitled;
++  for (let index = 2; index < 1000; index += 1) {
++    const candidate = numbered(untitled, index);
++    if (!existing.has(candidate)) return candidate;
++  }
++  return untitled;
++}
++
+ function FolderIcon() {
+   return (
+     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+@@ -93,20 +334,14 @@ function FolderIcon() {
+   );
+ }
+ 
+-function DriveIcon() {
++function ChevronIcon() {
+   return (
+-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+-      <rect x="2" y="3" width="12" height="10" rx="1.5" />
+-      <path d="M2 9h12" />
+-      <circle cx="11.5" cy="11" r="0.6" fill="currentColor" stroke="none" />
++    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
++      <path d="m9 6 6 6-6 6" />
+     </svg>
+   );
+ }
+ 
+-function isWindowsDriveRoot(directory: string): boolean {
+-  return /^[a-zA-Z]:[\\/]?$/.test(directory);
+-}
+-
+ interface Props {
+   onCancel: () => void;
+   onSelect: (path: string) => void;
+@@ -116,47 +351,170 @@ interface Props {
+ }
+ 
+ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false, error }: Props) {
+-  const { t } = useI18n();
++  const { locale, t } = useI18n();
++  const text = useMemo(() => localText(locale), [locale]);
++
+   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
++  const [roots, setRoots] = useState<WorkspaceRootInfo[]>([]);
++  const [rootId, setRootId] = useState<string>("");
++  const [rootPath, setRootPath] = useState("");
+   const [currentPath, setCurrentPath] = useState("");
+-  const [parentDirectory, setParentDirectory] = useState<string | null>(null);
+-  const [pathInput, setPathInput] = useState(initialPath ?? "");
+-  const [directories, setDirectories] = useState<DirectoryEntry[]>([]);
+-  const [drives, setDrives] = useState<DirectoryEntry[] | null>(null);
+-  const [loadError, setLoadError] = useState<string | null>(null);
++  const [selectedPath, setSelectedPath] = useState<string | null>(null);
++  const [entries, setEntries] = useState<DirectoryEntry[]>([]);
++  const [truncated, setTruncated] = useState(false);
+   const [loading, setLoading] = useState(true);
++  const [loadError, setLoadError] = useState<string | null>(null);
++  const [permissionBlock, setPermissionBlock] = useState<{ permType: string | null; code: string } | null>(null);
++  const [permissionAvailable, setPermissionAvailable] = useState<boolean | null>(null);
++  const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
++  const [settingsError, setSettingsError] = useState<string | null>(null);
++  const [openingSettings, setOpeningSettings] = useState(false);
++  const [reloadToken, setReloadToken] = useState(0);
+   const [createOpen, setCreateOpen] = useState(false);
+   const [directoryName, setDirectoryName] = useState("");
+   const [createError, setCreateError] = useState<string | null>(null);
+   const [creating, setCreating] = useState(false);
++  /** 首次挂载只决定一次主目录：先 localStorage，回退沙箱，再回退响应里的第一个。 */
++  const rootChosenRef = useRef(false);
++
++  const activeRoot = useMemo(() => roots.find((root) => root.id === rootId) ?? null, [roots, rootId]);
+ 
+-  const navigateTo = useCallback(async (directory?: string) => {
++  /**
++   * 列一个主目录/子目录。
++   *
++   * 关键点：`rootId` 与 `rootPath` 在**请求之前**就按目标提交。失败时也必须提交 ——
++   * 否则（a）重试按钮的 `rootId` 守卫会短路成死按钮，（b）归因文案会指向**上一个**主目录，
++   * 即「越需要归因的路径越归因错」。
++   */
++  const navigate = useCallback(async (targetRootId: string, targetPath?: string) => {
+     setLoading(true);
+     setLoadError(null);
++    setPermissionBlock(null);
++    setPermissionGranted(null);
++    setSettingsError(null);
++    setRootId(targetRootId);
++    setRootPath((previous) => {
++      const known = roots.find((root) => root.id === targetRootId);
++      return known ? known.path : previous;
++    });
++    setCurrentPath(targetPath ?? "");
+     try {
+-      const data = await loadDirectories(directory);
+-      const nextPath = data.path ?? directory ?? "/";
+-      setCurrentPath(nextPath);
+-      setParentDirectory(data.parentPath ?? null);
+-      setPathInput(nextPath);
+-      setDirectories(data.directories ?? []);
+-      setDrives(data.drives ?? null);
++      const data = await loadDirectories({ root: targetRootId, path: targetPath });
++      const nextRoots = data.roots ?? [];
++      if (nextRoots.length > 0) setRoots(nextRoots);
++      const nextRootPath = data.rootPath ?? nextRoots.find((root) => root.id === targetRootId)?.path ?? "";
++      if (nextRootPath) setRootPath(nextRootPath);
++      setCurrentPath(data.path ?? nextRootPath);
++      setEntries(data.directories ?? []);
++      setTruncated(data.truncated === true);
++      setSelectedPath(null);
+     } catch (cause) {
+-      setLoadError(cause instanceof Error ? cause.message : String(cause));
++      const failure = cause as BrowseFailure;
++      if (failure.roots?.length) setRoots(failure.roots);
++      setEntries([]);
++      setTruncated(false);
++      const isPermission = failure.code === "EACCES" || failure.code === "EPERM";
++      if (isPermission) {
++        setPermissionBlock({ permType: failure.permType ?? null, code: failure.code ?? "" });
++        void loadPermissionGrants().then(({ available, grants }) => {
++          setPermissionAvailable(available);
++          const permType = failure.permType ?? null;
++          setPermissionGranted(permType ? grants[permType] ?? null : null);
++        });
++      } else {
++        setLoadError(failure.message);
++      }
+     } finally {
+       setLoading(false);
+     }
+-  }, []);
++  }, [roots]);
+ 
++  // 首次挂载：取 roots（由任意一次 browse 响应带回），再按「localStorage → 沙箱 → 第一个」决定主目录。
+   useEffect(() => {
+     setPortalTarget(document.body);
+-    void navigateTo(initialPath || undefined);
+-  }, [initialPath, navigateTo]);
++    if (rootChosenRef.current) return;
++    rootChosenRef.current = true;
++    void (async () => {
++      setLoading(true);
++      try {
++        const probe = await loadDirectories({});
++        const discovered = probe.roots ?? [];
++        setRoots(discovered);
++        if (discovered.length === 0) {
++          // 非 Pi Desktop 运行时（未注入 PI_HOS_ROOTS）：退化为上游的「按 path 浏览」，但**不含**
++          // 路径输入与「上级目录」按钮 —— 这两个入口正是需求 203 要移除的。见文件头注释。
++          const fallbackPath = probe.path ?? initialPath ?? "";
++          setRootId("");
++          setRootPath("");
++          setCurrentPath(fallbackPath);
++          setEntries(probe.directories ?? []);
++          setTruncated(probe.truncated === true);
++          setLoading(false);
++          return;
++        }
++        const validIds = new Set(discovered.map((root) => root.id));
++        const remembered = readStoredRootId(validIds);
++        const initial = remembered
++          ?? (validIds.has(DEFAULT_ROOT_ID) ? DEFAULT_ROOT_ID : discovered[0].id);
++        setLoading(false);
++        await navigate(initial);
++      } catch (cause) {
++        // 探测本身失败（例如沙箱根不可用）：仍要给出可重试的出口，不能只剩一行错误。
++        const failure = cause as BrowseFailure;
++        if (failure.roots?.length) setRoots(failure.roots);
++        setLoadError(cause instanceof Error ? cause.message : String(cause));
++        setLoading(false);
++      }
++    })();
++    // 只在首次挂载运行（rootChosenRef 守卫）；依赖刻意留空。
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
++  // 重试：重新列当前主目录（未授权时用户可能刚从系统设置返回）。
++  useEffect(() => {
++    if (reloadToken === 0) return;
++    void navigate(rootId, currentPath && currentPath !== rootPath ? currentPath : undefined);
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [reloadToken]);
++
++  const handleSwitchRoot = (nextRootId: string) => {
++    if (nextRootId === rootId && !loadError && !permissionBlock) return;
++    writeStoredRootId(nextRootId);
++    setSelectedPath(null);
++    void navigate(nextRootId);
++  };
+ 
+-  const handlePathSubmit = (event: FormEvent<HTMLFormElement>) => {
+-    event.preventDefault();
+-    const candidate = pathInput.trim();
+-    if (candidate) void navigateTo(candidate);
++  const handleEnter = (entry: DirectoryEntry) => {
++    setSelectedPath(null);
++    void navigate(rootId, entry.path);
++  };
++
++  const handleCrumb = (path: string) => {
++    setSelectedPath(null);
++    void navigate(rootId, path === rootPath ? undefined : path);
++  };
++
++  const handleRetry = () => setReloadToken((token) => token + 1);
++
++  const crumbs = useMemo(() => {
++    if (!rootPath) return [];
++    const built = [{ name: rootPath, path: rootPath }];
++    const prefix = rootPath.endsWith("/") ? rootPath : `${rootPath}/`;
++    if (currentPath && currentPath !== rootPath && currentPath.startsWith(prefix)) {
++      let cursor = rootPath;
++      for (const segment of currentPath.slice(prefix.length).split("/").filter(Boolean)) {
++        cursor = `${cursor}/${segment}`;
++        built.push({ name: segment, path: cursor });
++      }
++    }
++    return built;
++  }, [rootPath, currentPath]);
++
++  const openCreateDialog = () => {
++    const existing = new Set(entries.map((entry) => entry.name));
++    setDirectoryName(nextUntitledName(existing, text.untitledFolder, text.numbered));
++    setCreateError(null);
++    setCreateOpen(true);
+   };
+ 
+   const closeCreateDialog = () => {
+@@ -166,8 +524,7 @@ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false,
+     setCreateError(null);
+   };
+ 
+-  // Open the new directory rather than selecting it, so "Select this folder" stays the
+-  // picker's only commit point and nested folders can be created the same way.
++  // 创建成功后重新列目录并**选中**新文件夹；「选择此文件夹」仍是唯一提交点。
+   const handleCreateDirectory = async () => {
+     const name = directoryName.trim();
+     if (!currentPath || !name || creating) return;
+@@ -178,7 +535,8 @@ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false,
+       const createdPath = await createDirectory(currentPath, name);
+       setCreateOpen(false);
+       setDirectoryName("");
+-      await navigateTo(createdPath);
++      await navigate(rootId, currentPath);
++      setSelectedPath(createdPath);
+     } catch (cause) {
+       setCreateError(cause instanceof Error ? cause.message : String(cause));
+     } finally {
+@@ -186,10 +544,41 @@ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false,
+     }
+   };
+ 
+-  const hasUncommittedPath = pathInput.trim() !== currentPath;
+-  const canSelect = Boolean(currentPath) && !hasUncommittedPath && !busy;
+-  const canCreate = canSelect && !loading;
+-  const canNavigateUp = Boolean(parentDirectory) || isWindowsDriveRoot(currentPath);
++  const handleGoToSettings = async () => {
++    setOpeningSettings(true);
++    setSettingsError(null);
++    try {
++      const ok = await openAppInfo();
++      // 打不开系统设置是**这个动作**失败，不改变「本构建能否判定权限」的结论。
++      if (!ok) setSettingsError(text.settingsOpenFailed);
++    } finally {
++      setOpeningSettings(false);
++    }
++  };
++
++  const commitPath = selectedPath ?? currentPath;
++  const canSelect = Boolean(commitPath) && !busy && !loading;
++  const canCreate = Boolean(currentPath) && !loading && !permissionBlock;
++
++  /** 归因话术：沙箱（permType 为 null）用通用文案；已授权则说明「更像临时失败」。 */
++  const failureLabel = activeRoot
++    ? labelForRoot(locale, activeRoot)
++    : (rootPath || currentPath);
++  let permissionTitle: string;
++  let permissionBody: string;
++  if (!permissionBlock) {
++    permissionTitle = "";
++    permissionBody = "";
++  } else if (permissionGranted === true) {
++    permissionTitle = text.transientTitle(failureLabel);
++    permissionBody = text.transientBody;
++  } else if (!permissionBlock.permType) {
++    permissionTitle = text.readFailedTitle(failureLabel);
++    permissionBody = text.readFailedBody;
++  } else {
++    permissionTitle = text.permissionTitle(failureLabel);
++    permissionBody = permissionAvailable === false ? text.permissionUnknown : text.permissionBody;
++  }
+ 
+   if (!portalTarget) return null;
+ 
+@@ -207,7 +596,7 @@ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false,
+       }}
+       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)" }}
+     >
+-      <div className="directory-picker-panel" style={{ ...panelSurfaceStyle, position: "relative", width: 520, maxWidth: "calc(100vw - 16px)", height: "min(620px, calc(100dvh - 16px))", maxHeight: "calc(100dvh - 16px)", display: "flex", flexDirection: "column" }}>
++      <div className="directory-picker-panel" style={{ ...panelSurfaceStyle, position: "relative", width: 560, maxWidth: "calc(100vw - 16px)", height: "min(620px, calc(100dvh - 16px))", maxHeight: "calc(100dvh - 16px)", display: "flex", flexDirection: "column" }}>
+         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
+           <div style={{ minWidth: 0, flex: 1 }}>
+             <div style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{t("directoryPicker.selectDirectory")}</div>
+@@ -224,92 +613,201 @@ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false,
+           </button>
+         </div>
+ 
+-        <form onSubmit={handlePathSubmit} style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
+-          <button className="directory-picker-back" type="button" onClick={() => void navigateTo(parentDirectory ?? undefined)} disabled={loading || !canNavigateUp} title={t("directoryPicker.goToParent")} aria-label={t("directoryPicker.goToParent")} style={{ width: 36, height: 36, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: "1px solid var(--border)", borderRadius: 6, background: "var(--bg-hover)", color: "var(--text-muted)", cursor: canNavigateUp ? "pointer" : "default", opacity: canNavigateUp ? 1 : 0.45 }}>
+-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+-              <path d="m18 15-6-6-6 6" />
+-            </svg>
+-          </button>
+-          <label htmlFor="directory-path" style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
+-            {t("directoryPicker.directoryPath")}
+-          </label>
+-          <input
+-            className="directory-picker-path"
+-            id="directory-path"
+-            type="text"
+-            value={pathInput}
+-            placeholder="/path/to/project or ~/project"
+-            autoFocus
+-            autoComplete="off"
+-            spellCheck={false}
+-            onChange={(event) => {
+-              setPathInput(event.target.value);
+-              setLoadError(null);
+-            }}
+-            style={{ ...textInputStyle, minWidth: 0, flex: 1 }}
+-          />
+-          <button
+-            className="directory-picker-action"
+-            type="submit"
+-            disabled={loading || !pathInput.trim()}
+-            title={t("directoryPicker.goToDirectory")}
+-            style={{ minWidth: 58, height: 36, padding: "0 12px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--bg-hover)", color: "var(--text-muted)", cursor: loading || !pathInput.trim() ? "default" : "pointer", opacity: loading || !pathInput.trim() ? 0.6 : 1 }}
++        {/* 主目录 Tab（FR-203-005）：切换即重置浏览栈。没有主目录时整行不渲染。 */}
++        {roots.length > 0 && (
++          <div
++            className="directory-picker-roots"
++            role="tablist"
++            aria-label={text.workspaceLocation}
++            style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, padding: "8px 14px", borderBottom: "1px solid var(--border)", overflowX: "auto" }}
+           >
+-            {t("directoryPicker.go")}
+-          </button>
+-        </form>
++            <span style={{ color: "var(--text-dim)", fontSize: 11, marginRight: 4, whiteSpace: "nowrap" }}>{text.workspaceLocation}</span>
++            {roots.map((root) => {
++              const active = root.id === rootId;
++              return (
++                <button
++                  key={root.id}
++                  type="button"
++                  role="tab"
++                  aria-selected={active}
++                  className={`directory-picker-root${active ? " is-selected" : ""}`}
++                  onClick={() => handleSwitchRoot(root.id)}
++                  disabled={loading}
++                  title={root.path}
++                  style={{
++                    padding: "4px 12px",
++                    borderRadius: 999,
++                    border: "1px solid var(--border)",
++                    background: active ? "var(--accent)" : "var(--bg-hover)",
++                    color: active ? "var(--accent-contrast)" : "var(--text-muted)",
++                    fontSize: 12,
++                    fontWeight: active ? 600 : 400,
++                    cursor: loading ? "default" : "pointer",
++                    whiteSpace: "nowrap",
++                    opacity: loading ? 0.6 : 1,
++                  }}
++                >
++                  {labelForRoot(locale, root)}
++                </button>
++              );
++            })}
++          </div>
++        )}
++
++        {/* 面包屑（FR-203-008）：最高只到主目录根，根之上不渲染。此处刻意**没有**路径输入（FR-203-007）。 */}
++        <div
++          className="directory-picker-breadcrumbs"
++          style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, padding: "8px 14px", borderBottom: "1px solid var(--border)", overflowX: "auto", minHeight: 36 }}
++        >
++          {crumbs.length === 0 ? (
++            <span style={{ color: "var(--text-dim)", fontSize: 11, fontFamily: "var(--font-mono)" }}>{currentPath || text.loadingRoots}</span>
++          ) : (
++            crumbs.map((crumb, index) => (
++              <span key={crumb.path} style={{ display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
++                {index > 0 && <span style={{ color: "var(--text-dim)", fontSize: 11 }}>/</span>}
++                <button
++                  type="button"
++                  className="directory-picker-crumb"
++                  onClick={() => handleCrumb(crumb.path)}
++                  disabled={loading || index === crumbs.length - 1}
++                  title={crumb.path}
++                  style={{
++                    border: 0,
++                    background: "none",
++                    padding: "2px 4px",
++                    borderRadius: 4,
++                    color: index === crumbs.length - 1 ? "var(--text)" : "var(--text-muted)",
++                    fontFamily: "var(--font-mono)",
++                    fontSize: 11,
++                    cursor: loading || index === crumbs.length - 1 ? "default" : "pointer",
++                    maxWidth: 220,
++                    overflow: "hidden",
++                    textOverflow: "ellipsis",
++                  }}
++                >
++                  {crumb.name}
++                </button>
++              </span>
++            ))
++          )}
++        </div>
+ 
+         <div className="directory-picker-list" style={{ flex: 1, minHeight: 0, overflow: "auto", padding: "8px 10px" }}>
+           {loading ? (
+             <div style={{ padding: 8, color: "var(--text-dim)", fontSize: 11 }}>{t("directoryPicker.loadingDirectories")}</div>
+-          ) : drives !== null ? (
+-            <>
+-              {drives.length > 0 ? (
+-                drives.map((drive) => (
++          ) : permissionBlock ? (
++            <div className="directory-picker-permission" style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
++              <div style={{ color: "#dc2626", fontSize: 13, fontWeight: 600 }}>{permissionTitle}</div>
++              <div style={{ color: "var(--text-muted)", fontSize: 11, lineHeight: 1.5 }}>{permissionBody}</div>
++              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
++                {permissionBlock.permType && permissionGranted !== true && (
++                  <button
++                    className="directory-picker-action"
++                    type="button"
++                    onClick={() => void handleGoToSettings()}
++                    disabled={openingSettings}
++                    style={{ ...secondaryActionStyle, opacity: openingSettings ? 0.6 : 1, cursor: openingSettings ? "default" : "pointer" }}
++                  >
++                    {openingSettings ? text.openingSettings : text.goToSettings}
++                  </button>
++                )}
++                <button
++                  className="directory-picker-action"
++                  type="button"
++                  onClick={handleRetry}
++                  disabled={loading}
++                  style={{ ...secondaryActionStyle, cursor: loading ? "default" : "pointer" }}
++                >
++                  {text.retry}
++                </button>
++              </div>
++              {settingsError && <div style={{ color: "#dc2626", fontSize: 11 }}>{settingsError}</div>}
++            </div>
++          ) : entries.length > 0 ? (
++            entries.map((entry) => {
++              const selected = entry.path === selectedPath;
++              return (
++                <div
++                  key={entry.path}
++                  className={`directory-picker-entry${selected ? " is-selected" : ""}`}
++                  role="button"
++                  tabIndex={0}
++                  aria-pressed={selected}
++                  onClick={() => setSelectedPath(selected ? null : entry.path)}
++                  onDoubleClick={() => handleEnter(entry)}
++                  onKeyDown={(event) => {
++                    if (event.key === "Enter") handleEnter(entry);
++                    if (event.key === " ") setSelectedPath(entry.path);
++                  }}
++                  title={entry.path}
++                  style={{
++                    width: "100%",
++                    minHeight: 30,
++                    display: "flex",
++                    alignItems: "center",
++                    gap: 7,
++                    padding: "5px 8px",
++                    border: "1px solid " + (selected ? "var(--accent)" : "transparent"),
++                    borderRadius: 5,
++                    background: selected ? "var(--bg-hover)" : "none",
++                    color: selected ? "var(--text)" : "var(--text-muted)",
++                    cursor: "pointer",
++                    textAlign: "left",
++                    fontFamily: "var(--font-mono)",
++                    fontSize: 11,
++                  }}
++                >
++                  <FolderIcon />
++                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}</span>
+                   <button
+-                    key={drive.path}
+-                    className="directory-picker-entry"
+                     type="button"
+-                    onClick={() => void navigateTo(drive.path)}
+-                    title={drive.path}
+-                    style={{ width: "100%", minHeight: 34, display: "flex", alignItems: "center", gap: 7, padding: "6px 8px", border: 0, borderRadius: 5, background: "none", color: "var(--text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-mono)", fontSize: 11 }}
++                    className="directory-picker-enter"
++                    aria-label={text.enterFolder}
++                    title={text.enterFolder}
++                    onClick={(event) => {
++                      event.stopPropagation();
++                      handleEnter(entry);
++                    }}
++                    style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, border: 0, borderRadius: 4, background: "none", color: "var(--text-dim)", cursor: "pointer", flexShrink: 0 }}
+                   >
+-                    <DriveIcon />
+-                    <span>{drive.name}</span>
++                    <ChevronIcon />
+                   </button>
+-                ))
+-              ) : (
+-                <div style={{ padding: 8, color: "var(--text-dim)", fontSize: 11 }}>{t("directoryPicker.noDrives")}</div>
+-              )}
+-            </>
+-          ) : directories.length > 0 ? (
+-            directories.map((entry) => (
++                </div>
++              );
++            })
++          ) : (
++            <div style={{ padding: 8, color: "var(--text-dim)", fontSize: 11 }}>{t("directoryPicker.noSubdirectories")}</div>
++          )}
++          {truncated && (
++            <div className="directory-picker-truncated" style={{ padding: "8px", color: "var(--text-dim)", fontSize: 11 }}>{text.truncated}</div>
++          )}
++          {selectedPath && entries.some((entry) => entry.path === selectedPath) && (
++            <div style={{ padding: "6px 8px 0", color: "var(--text-dim)", fontSize: 11, fontFamily: "var(--font-mono)" }}>
++              {text.selected}: {selectedPath}
++            </div>
++          )}
++          {(loadError || error) && !permissionBlock && (
++            <div className="directory-picker-error" style={{ padding: "8px", color: "#dc2626", fontSize: 11, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
++              <span>{loadError ?? error}</span>
++              {/* 非权限类失败也要有出口：否则这里会变成一条无法推进的死路。 */}
+               <button
+-                key={entry.path}
+-                className="directory-picker-entry"
++                className="directory-picker-action"
+                 type="button"
+-                onClick={() => void navigateTo(entry.path)}
+-                title={entry.path}
+-                style={{ width: "100%", minHeight: 30, display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", border: 0, borderRadius: 5, background: "none", color: "var(--text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-mono)", fontSize: 11 }}
++                onClick={handleRetry}
++                disabled={loading}
++                style={{ ...secondaryActionStyle, padding: "3px 10px", fontSize: 11, cursor: loading ? "default" : "pointer" }}
+               >
+-                <FolderIcon />
+-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name}</span>
++                {text.retry}
+               </button>
+-            ))
+-          ) : (
+-            <div style={{ padding: 8, color: "var(--text-dim)", fontSize: 11 }}>{t("directoryPicker.noSubdirectories")}</div>
++            </div>
+           )}
+-          {(loadError || error) && <div style={{ padding: "8px", color: "#dc2626", fontSize: 11 }}>{loadError ?? error}</div>}
+         </div>
+ 
+         <div className="directory-picker-footer" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, flexShrink: 0, padding: "10px 18px", borderTop: "1px solid var(--border)" }}>
+           <button
+             className="directory-picker-action"
+             type="button"
+-            onClick={() => {
+-              setCreateOpen(true);
+-              setCreateError(null);
+-            }}
++            onClick={openCreateDialog}
+             disabled={!canCreate}
+             style={{ ...secondaryActionStyle, marginRight: "auto", opacity: canCreate ? 1 : 0.6, cursor: canCreate ? "pointer" : "default" }}
+           >
+@@ -319,9 +817,9 @@ export function DirectoryPicker({ onCancel, onSelect, initialPath, busy = false,
+           <button
+             className="directory-picker-action"
+             type="button"
+-            onClick={() => onSelect(currentPath)}
++            onClick={() => onSelect(commitPath)}
+             disabled={!canSelect}
+-            title={hasUncommittedPath ? t("directoryPicker.openBeforeSelecting") : t("directoryPicker.selectCurrentDirectory")}
++            title={commitPath}
+             style={{ ...primaryActionStyle, opacity: canSelect ? 1 : 0.6, cursor: canSelect ? "pointer" : "default" }}
+           >
+             {busy ? t("i18n.checking") : t("directoryPicker.selectThisFolder")}
+diff --git a/lib/directory-browser.ts b/lib/directory-browser.ts
+index 41c020e..2dc4587 100644
+--- a/lib/directory-browser.ts
++++ b/lib/directory-browser.ts
+@@ -15,7 +15,13 @@ export function shouldShowWindowsDrivePicker(
+ }
+ 
+ export function getBrowseStartDirectory(directory?: string): string {
+-  return directory || homedir();
++  if (directory) return directory;
++  // pi-desktop-hos (203-plugin-workspace-picker): when the shell injected workspace roots,
++  // a bare open (no `path`, no `root`) starts at the sandbox root instead of homedir().
++  // homedir() is redirected into the app sandbox by the shell anyway, but it points at the
++  // mixed userData directory rather than the workspace root. Absent the env var this is
++  // byte-identical to the previous behaviour.
++  return getWorkspaceRoots().find((root) => root.id === "sandbox")?.path || homedir();
+ }
+ 
+ export function getWindowsDriveCandidates(): BrowsableDirectory[] {
+@@ -100,3 +106,113 @@ export async function listDirectories(directory: string): Promise<BrowsableDirec
+     .filter((entry): entry is BrowsableDirectory => entry !== null)
+     .sort((left, right) => left.name.localeCompare(right.name));
+ }
++
++// ---------------------------------------------------------------------------
++// pi-desktop-hos — 需求 203-plugin-workspace-picker（本段为下游新增，上游无对应物）
++//
++// 四个工作区主目录（沙箱 / 桌面 / 文档 / 下载）由壳的**主进程**解析并写入环境变量
++// PI_HOS_ROOTS（`src-main/main.js#installWorkspaceRoots`）。这里只**消费**它：
++//   · 缺失 / 非法 / 空 → 返回空数组，调用方按「无主目录」降级，**不猜测路径**；
++//   · 本模块不写回、不缓存到磁盘，主进程始终是唯一真值来源。
++// 主目录集合与对话框的 Tab 顺序以该数组顺序为准。
++// ---------------------------------------------------------------------------
++
++/** 主进程注入的根清单环境变量名（与脚本/文档同名字面量）。 */
++export const WORKSPACE_ROOTS_ENV = "PI_HOS_ROOTS";
++
++/** 单个工作区主目录。`permType` 为 null 表示该根无 OS 级权限门槛（沙箱）。 */
++export interface WorkspaceRoot {
++  id: string;
++  label: string;
++  path: string;
++  permType: string | null;
++}
++
++/** 单列列表的条目上限；触顶时由调用方展示 truncated 提示，不静默截断。 */
++export const DIRECTORY_ENTRY_LIMIT = 1000;
++
++/** 以 `.` 开头的条目视为隐藏项，对话框不渲染。 */
++export function isHiddenName(name: string): boolean {
++  return name.startsWith(".");
++}
++
++/** 读取壳注入的工作区主目录清单。任何异常都退化为空数组。 */
++export function getWorkspaceRoots(): WorkspaceRoot[] {
++  const raw = process.env[WORKSPACE_ROOTS_ENV];
++  if (!raw) return [];
++  try {
++    const parsed: unknown = JSON.parse(raw);
++    if (!Array.isArray(parsed)) return [];
++    return parsed
++      .filter((root): root is Record<string, unknown> => Boolean(root) && typeof root === "object")
++      .map((root) => ({
++        id: typeof root.id === "string" ? root.id : "",
++        label: typeof root.label === "string" && root.label ? root.label : String(root.id ?? ""),
++        path: typeof root.path === "string" ? root.path : "",
++        permType: typeof root.permType === "string" && root.permType ? root.permType : null,
++      }))
++      .filter((root) => root.id.length > 0 && root.path.length > 0);
++  } catch {
++    return [];
++  }
++}
++
++/** 按 id 取主目录；未知 id 返回 null（调用方必须报错，不得回退到别的根）。 */
++export function resolveWorkspaceRoot(rootId: string): WorkspaceRoot | null {
++  return getWorkspaceRoots().find((root) => root.id === rootId) ?? null;
++}
++
++/**
++ * 词法「在根之内」判定：相等，或以 `根 + 分隔符` 为前缀（带分隔符边界，避免 `/a/bc` 命中 `/a/b`）。
++ * 根围栏的可复用原语 —— GET 列目录与 POST 建目录共用同一判定。
++ */
++export function isPathInsideRoot(rootPath: string, targetPath: string): boolean {
++  // 分隔符必须**两种都认**，不能只看 path.sep：目标平台（HarmonyOS）给的是一律以 `/` 分隔的
++  // 绝对路径，而本模块也会在 Windows 构建机上被加载（补丁的单元测试、脚本）。用 path.sep 时
++  // 在 Windows 上会拿到 ``，于是 `/a/b/c` 不再被判为在 `/a/b` 之内 —— 围栏会静默放宽。
++  const root = rootPath.replace(/[\/]+$/, "");
++  if (!root) return false;
++  if (targetPath === root) return true;
++  return targetPath.startsWith(root + "/") || targetPath.startsWith(root + "\\");
++}
++export interface WorkspaceListing {
++  rootId: string;
++  rootPath: string;
++  path: string;
++  entries: BrowsableDirectory[];
++  truncated: boolean;
++}
++
++/**
++ * 列出一个工作区主目录（或它的某个子目录）。
++ *
++ * 只在**该主目录之内**取子路径：`requestedPath` 为空则列主目录根；否则必须
++ * 以主目录根为前缀（词法前缀 + 分隔符边界），越界一律拒绝。这是根围栏的
++ * 服务端一侧 —— 对话框不提供手输路径入口，服务端也不接受越界路径。
++ */
++export async function listWorkspaceEntries(
++  root: WorkspaceRoot,
++  requestedPath?: string,
++): Promise<WorkspaceListing> {
++  const rootPath = await resolveDirectory(root.path).catch(() => path.resolve(root.path));
++  let target = rootPath;
++
++  if (requestedPath) {
++    const normalized = await resolveDirectory(requestedPath).catch(() => null);
++    if (!normalized) throw new Error("Directory does not exist");
++    if (!isPathInsideRoot(rootPath, normalized)) {
++      throw new Error("Path is outside the selected workspace root");
++    }
++    target = normalized;
++  }
++
++  const all = await listDirectories(target);
++  const visible = all.filter((entry) => !isHiddenName(entry.name));
++  return {
++    rootId: root.id,
++    rootPath,
++    path: target,
++    entries: visible.slice(0, DIRECTORY_ENTRY_LIMIT),
++    truncated: visible.length > DIRECTORY_ENTRY_LIMIT,
++  };
++}
+diff --git a/lib/i18n/messages/en.ts b/lib/i18n/messages/en.ts
+index cd39a31..594799c 100644
+--- a/lib/i18n/messages/en.ts
++++ b/lib/i18n/messages/en.ts
+@@ -284,7 +284,7 @@ export const enLocale: LocalePlugin = {
+     "sidebar.filterProjects": "Filter projects…",
+     "sidebar.noMatchingProjects": "No matching projects",
+     "sidebar.useDefaultDirectory": "Use default directory",
+-    "sidebar.customPath": "Custom path…",
++    "sidebar.customPath": "Choose workspace folder…",
+     "directoryPicker.selectDirectory": "Select directory",
+     "directoryPicker.goToParent": "Go to parent directory",
+     "directoryPicker.directoryPath": "Directory path",
+diff --git a/lib/i18n/messages/zh-CN.ts b/lib/i18n/messages/zh-CN.ts
+index 96c75c3..8ec4f7e 100644
+--- a/lib/i18n/messages/zh-CN.ts
++++ b/lib/i18n/messages/zh-CN.ts
+@@ -284,7 +284,7 @@ export const zhCNLocale: LocalePlugin = {
+     "sidebar.filterProjects": "筛选项目…",
+     "sidebar.noMatchingProjects": "没有匹配的项目",
+     "sidebar.useDefaultDirectory": "使用默认目录",
+-    "sidebar.customPath": "自定义路径…",
++    "sidebar.customPath": "选择工作区目录…",
+     "directoryPicker.selectDirectory": "选择目录",
+     "directoryPicker.goToParent": "转到上级目录",
+     "directoryPicker.directoryPath": "目录路径",
+diff --git a/lib/i18n/messages/zh-TW.ts b/lib/i18n/messages/zh-TW.ts
+index d8b6d41..ecb19c1 100644
+--- a/lib/i18n/messages/zh-TW.ts
++++ b/lib/i18n/messages/zh-TW.ts
+@@ -284,7 +284,7 @@ export const zhTWLocale: LocalePlugin = {
+     "sidebar.filterProjects": "篩選專案…",
+     "sidebar.noMatchingProjects": "找不到相符的專案",
+     "sidebar.useDefaultDirectory": "使用預設目錄",
+-    "sidebar.customPath": "自訂路徑…",
++    "sidebar.customPath": "選擇工作區目錄…",
+     "directoryPicker.selectDirectory": "選擇目錄",
+     "directoryPicker.goToParent": "前往上一層目錄",
+     "directoryPicker.directoryPath": "目錄路徑",

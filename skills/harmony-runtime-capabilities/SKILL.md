@@ -99,6 +99,13 @@ times and reported it as `Signal 31 (core dumped)` / SIGSYS from seccomp refusin
 that is a **plausible but unproven** explanation here, so treat it as "assume it will not work" rather than as a
 verified signal.
 
+**`Signal 31 (core dumped)` on its own is not seccomp evidence.** Re-measured 2026-10-17 on
+`HAD-W24 7.0.0.107(SP7C00E100R13P5)` / API 26 / `OpenHarmony-7.0.0.105`: a plain `kill -SYS $$` (and `kill -31 $$`)
+in the shell domain prints exactly `Signal 31 (core dumped)` with `rc=159` — no seccomp filter involved. A real
+seccomp trap is distinguishable only from `siginfo`: it carries `si_code = SYS_SECCOMP` plus `si_call_addr` /
+`si_syscall` (measured on this device: `si_syscall=425` = `io_uring_setup`, `si_arch=0xC00000B7` = AArch64),
+whereas a `kill`-sent signal carries `SI_USER` with the sender's pid/uid.
+
 The practical consequence: anything that needs a JavaScript runtime must run **inside the
 agent process** (which is where Pi itself runs), never in a child process.
 

@@ -88,7 +88,9 @@ function buildReport(ctx) {
     "    每条命令在子 shell 内执行（cd/变量不跨调用保留），顶层 exit 不会打断后续调用。",
     "  · 子进程跑 Node 脚本不可用：node -v 会打印版本，但 node -e / node x.js 无任何输出且进程变僵尸，",
     "    终止原因取不到（exit 事件不来、signalCode 恒 null）。参考工程记为 Signal 31 SIGSYS（seccomp 拦 JIT），",
-    "    在本机属**未经证实**；无论原因，需要 JS 运行时的东西都必须在 agent 进程内跑。",
+    "    在本机属**未经证实**：`Signal 31 (core dumped)` 本身不能当 seccomp 证据 —— 实测 `sh -c 'kill -SYS $$'",
+    "    与 `kill -31 $$` 都原样产出该串与 rc=159，无需 seccomp 参与；真 seccomp 陷阱的 siginfo 是",
+    "    si_code=SYS_SECCOMP + si_call_addr/si_syscall。无论原因，需要 JS 运行时的东西都必须在 agent 进程内跑。",
     "",
     "详见技能 harmony-runtime-capabilities 与 docs/工程规划.md §9.3 / §11。",
   );

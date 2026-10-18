@@ -2,8 +2,12 @@
 
 ---
 
-# Pi Desktop（HarmonyOS 版）
+# Pi Desktop · Electron on HarmonyOS 版（`pi-desktop-hos`）
 
+> **定位：Electron on HarmonyOS Edition**（Electron on HarmonyOS 版）—— Pi Desktop 的两个鸿蒙版别之一；
+> 另一个是 `pi-desktop-ark`（**HarmonyOS 版**，用 ArkWeb + 进程内 Node 运行时，不带 Electron）。
+> 本版保留 Electron 运行时，因此保留整套桌面 API 面。
+>
 > 基于「Electron-on-鸿蒙」运行时（[harmonypc-electron](https://atomgit.com/jianguoxu/harmonypc-electron)，
 > Electron **37.2.3** / Node **22.17.0** / ABI **v138**）的 [Pi](https://pi.dev) 桌面封装 ——
 > 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），

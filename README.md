@@ -2,8 +2,12 @@
 
 ---
 
-# Pi Desktop (HarmonyOS)
+# Pi Desktop · Electron on HarmonyOS Edition (`pi-desktop-hos`)
 
+> **Positioning: Electron on HarmonyOS Edition** — one of the two HarmonyOS editions of Pi Desktop
+> (the other is `pi-desktop-ark`, the **HarmonyOS Edition**, which uses ArkWeb + an in-process Node runtime
+> instead of Electron). This edition keeps the Electron runtime and therefore the desktop-API surface.
+>
 > A [Pi](https://pi.dev) desktop wrapper built on the "Electron-on-HarmonyOS" runtime
 > ([harmonypc-electron](https://atomgit.com/jianguoxu/harmonypc-electron),
 > Electron **37.2.3** / Node **22.17.0** / ABI **v138**) — it hosts **Pi Web** (the Next server

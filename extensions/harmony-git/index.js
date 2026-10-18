@@ -12,6 +12,7 @@ import checkout from './lib/tools/checkout.js';
 import reset from './lib/tools/reset.js';
 import merge from './lib/tools/merge.js';
 import cherryPick from './lib/tools/cherry-pick.js';
+import revert from './lib/tools/revert.js';
 import stash from './lib/tools/stash.js';
 import tag from './lib/tools/tag.js';
 import diff from './lib/tools/diff.js';
@@ -24,7 +25,7 @@ import credentials from './lib/tools/credentials.js';
 
 const TOOLS = [
   init, clone, status, log, show, branch, add, commit, checkout, reset,
-  merge, cherryPick, stash, tag, diff, remote, fetchTool, pull, push, config, credentials,
+  merge, cherryPick, revert, stash, tag, diff, remote, fetchTool, pull, push, config, credentials,
 ];
 
 export default function register(pi) {

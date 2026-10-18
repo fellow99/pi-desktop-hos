@@ -30,7 +30,7 @@ export function workspaceRoots(env = process.env) {
  * 返回 { root, roots, outsideRoot } —— outsideRoot 为 true 表示落在已知工作区根之外（仅提示，不阻断）。
  */
 export function resolveRepoRoot(dir, cwd) {
-  if (typeof dir !== 'string' || !dir.trim()) throw new FenceError('dir is required（仓库目录）');
+  if (dir === undefined || dir === null || (typeof dir === 'string' && !dir.trim())) dir = '.';
   const root = path.resolve(cwd || process.cwd() || '/', dir);
   const roots = workspaceRoots();
   let outsideRoot = false;

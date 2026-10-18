@@ -57,7 +57,9 @@ export function rethrowAuthError(err, url) {
   const msg = err && (err.code === 'HttpError' || err.name === 'HttpError')
     ? `HTTP ${err.data && err.data.statusCode}` : (err && err.message) || String(err);
   if (/401|403|Auth|credentials|cancel/i.test(String(err && (err.code || err.name)) + ' ' + msg)) {
-    throw new Error(missingCredentialMessage(url));
+    // 已有匹配凭据 → 说明是被拒；没有 → 缺凭据指引
+    const had = matchCredential(readCredentialsSync(), toHttpsUrl(url).url);
+    throw new Error(had ? rejectedCredentialMessage(url) : missingCredentialMessage(url));
   }
   throw err;
 }

@@ -15,6 +15,10 @@ export function groupStatus(matrix) {
     // 已暂存（stage >= 2 且与 HEAD 不同）
     if (head === 0 && stage === 2) { g.staged.push(`A ${fp}`); continue; }
     if (head === 1 && stage === 2 && workdir === 1) { g.staged.push(`M ${fp}`); continue; }
+    // 已暂存且工作区与暂存一致（如 soft reset 后）：HEAD=1, workdir=2, stage=2
+    if (head === 1 && stage === 2 && workdir === 2) { g.staged.push(`M ${fp}`); continue; }
+    // 新增文件已暂存后又改：HEAD=0, workdir=2, stage=2
+    if (head === 0 && stage === 2 && workdir === 2) { g.staged.push(`A ${fp}`); continue; }
     if (head === 1 && stage === 0) { g.staged.push(`D ${fp}`); continue; }
     // 工作区改动未暂存
     if (head === 1 && workdir === 2) { g.modified.push(fp); continue; }

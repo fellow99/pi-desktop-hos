@@ -50,8 +50,11 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 | `101-version-0.12.1` | [specs/101-version-0.12.1/](specs/101-version-0.12.1/) | 版本收敛到 `0.12.1` / `1201`；上游升级到 `pi` v1.2.0 + `pi-web` v0.12.1，既有 2 条补丁复核后在 `patches/v0.12.1/` 重新生成；全流水线重建；环境能力清单复测 | 轮次 7 |
 | `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | 用随包**纯 JS 扩展**同名顶替 `bash` / `find` / `grep`；**上游与补丁集零改动** | 轮次 3、3b、3c |
 | `103-branding` | [specs/103-branding/](specs/103-branding/) | 界面品牌改 `Pi Desktop`、Logo/图标改用父工程物料、禁用新版本检测（上游零改动） | 轮次 4 |
+| `203-plugin-workspace-picker` | [specs/203-plugin-workspace-picker/](specs/203-plugin-workspace-picker/) | 目录浏览的工作区根 Tab + 面包屑围栏；根清单由宿主能力桥供数；对应 pi-web 补丁 `0001` | 已实现（真机注记见规格） |
+| `204-plugin-git` | [specs/204-plugin-git/](specs/204-plugin-git/) | 纯 JS **`harmony-git`** 扩展（isomorphic-git 1.44.2），注册 21 个 `git_*` 工具 + `git_credentials`；ark/android 姊妹工程从此单源同步；不依赖系统 git 二进制 | 🔧 已实现并随包；专项真机轮次尚未归档 |
 
-> `specs/README.md` 的 **§十** 给出上表的文档状态与四件套清单。
+> `specs/README.md` 的 **§十** 给出上表的文档状态与四件套清单。**状态注记（2026-10）**：`203`/`204`
+> 两行描述的是今天已在库并随包的代码；其规格文头部的状态仍写「Proposed/待实施」，将在下一轮文档回写中对齐。
 
 ## 核心设计
 
@@ -83,8 +86,10 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 - **命令执行与文件搜索由随包纯 JS 扩展同名顶替内建工具**（需求 102）：`bash` 走常驻
   `/system/bin/sh` + 随机哨兵行，结束判定**只看 stdout**、不等永不送达的进程事件；
   `find` / `grep` 走纯 JS 目录遍历，**零 `fd`/`rg`、零子进程**。对模型与 pi-web preset 完全透明。
-- **补丁集为 0 条必需**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖（见
-  [patches/README.md](patches/README.md)）。
+- **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
+  v0.12.1 另在 [`patches/v0.12.1/`](patches/v0.12.1/) 携带两条幂等可反向补丁 —— `0001-workspace-picker-roots`
+  （目录浏览的工作区根 Tab）与 `0002-session-export-in-process-fallback`（会话导走进程内回退）。见
+  [patches/README.md](patches/README.md)。
 - **品牌化在上游产物副本上完成**（需求 103）：界面文案、Logo 与全部图标位改用父工程物料，
   并禁用首页的新版本检测；`pi` / `pi-web` / `harmonypc-electron` **零改动**。
 - **上架合规的低成本项已前置**：不声明浏览器语义（`browsable` / `viewData`），
@@ -114,7 +119,7 @@ pi-desktop-hos/
 ├── src-main/                    # Electron 主进程源码（main.js + tar-extract.js）
 ├── scripts/                     # 五阶段构建流水线 + host 侧门禁 + 品牌化 + 签名构建脚本
 ├── runtime-overlays/            # 「copy 后回盖」白名单（保护本工程定制不被覆盖）
-├── patches/                     # 上游补丁集（本版本为空，见该目录 README）
+├── patches/                     # 幂等上游补丁（v0.11.1 无；v0.12.1 两条，见该目录 README）
 ├── config/                      # 运行时预置模板（settings.json / mcp.json）
 ├── extensions/                  # 壳专用 pi 扩展（bash / find / grep 的纯 JS 实现）
 ├── skills/                      # 壳专用 pi 技能
@@ -245,7 +250,7 @@ hdc fport tcp:19229 tcp:9229               # CDP 调试（仅 debug 构建；生
 | 命令执行（`bash` 工具） | ✅ | 由 `extensions/harmony-exec.js` **同名顶替**：常驻非 PTY `/system/bin/sh`（mksh R59）+ 随机哨兵行，结束判定只看 stdout、**不等** `exit`/`close` |
 | 文件查找 / 内容搜索（`find` / `grep` 工具） | ✅ | 由 `extensions/harmony-search.js` **同名顶替**：纯 JS 遍历，**零 `fd`/`rg`、零子进程**；`rg`/`fd` 仍不存在，但不再需要 |
 | 终端面板 / PTY | ❌ | `node-pty` 随包只有 `darwin-arm64`/`win32-arm64` 预编译产物（**L2 已证**）；内核是否也拒绝**未证伪** |
-| `git` 集成 / worktree | ❌ | 设备无 `git` 二进制，也无法安装 |
+| `git` 集成 / worktree | 🔧 | 设备仍无 `git` 二进制；需求 **204-plugin-git** 改为随包纯 JS **`harmony-git`** 扩展（isomorphic-git 1.44.2）：21 个 `git_*` 工具 + `git_credentials`，覆盖本地生命周期与 HTTP(S) clone/fetch/push（不支持 `rebase`/`blame`、SSH 远端、SHA-256 仓库、worktree）。代码已随 HAP 装配并通过主机侧测试，专项真机轮次尚未归档（[specs/204-plugin-git/](specs/204-plugin-git/)） |
 | 插件联网安装 | ❌ | PL1「仅本地源」+ `PI_OFFLINE=1`；设备无 npm/git |
 | MCP stdio 服务器 | ⚠️ | 阻塞根因（子进程结束事件不送达）已随 `bash` 顶替解除，通道级验证通过；**未接真实 MCP 服务器**（`config/mcp.json` 为空） |
 | 子进程内跑 Node 脚本 | ❌ | `node -e` 无 stdout/stderr 且进程变僵尸；**终止原因未取得** |

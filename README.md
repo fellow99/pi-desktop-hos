@@ -58,9 +58,13 @@ for more complex ones.
 | `101-version-0.12.1` | [specs/101-version-0.12.1/](specs/101-version-0.12.1/) | Version convergence to `0.12.1` / `1201`; upstream rebase to `pi` v1.2.0 + `pi-web` v0.12.1 with the two existing patches re-evaluated and regenerated under `patches/v0.12.1/`; full-pipeline rebuild; capability inventory re-measured | Round 7 |
 | `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | **Pure-JS extensions** shipped in the HAP take over `bash` / `find` / `grep` under the same tool names; **zero upstream or patch changes** | Rounds 3, 3b, 3c |
 | `103-branding` | [specs/103-branding/](specs/103-branding/) | UI branding switched to `Pi Desktop`, Logo/icons generated from parent-project assets, new-version check disabled (zero upstream changes) | Round 4 |
+| `203-plugin-workspace-picker` | [specs/203-plugin-workspace-picker/](specs/203-plugin-workspace-picker/) | Workspace-root tabs + breadcrumb fence in the directory browser; roots fed by the host capability bridge; pi-web patch `0001` | Implemented (see on-device notes in the spec) |
+| `204-plugin-git` | [specs/204-plugin-git/](specs/204-plugin-git/) | Pure-JS **`harmony-git`** extension (isomorphic-git 1.44.2) registering 21 `git_*` tools + `git_credentials`; single-source for the ark/android sibling copies; no system git binary needed | 🔧 implemented & assembled; dedicated on-device round not yet archived |
 
 > **§10** of `specs/README.md` lists the documentation status and the four-part document set for
-> the table above.
+> the table above. **Status note (2026-10):** the `203`/`204` rows describe code that is present
+> and assembled today; their formal spec headers still read "Proposed" and will be reconciled in
+> the next documentation pass.
 
 ## Core design
 
@@ -98,8 +102,11 @@ Key points:
   decides completion **from stdout alone**, never waiting for process events that never arrive;
   `find` / `grep` use a pure-JS directory walk with **zero `fd`/`rg` and zero child processes**.
   This is fully transparent to the model and to pi-web presets.
-- **Zero patches are required**: all 8 registered candidates are covered by existing upstream
-  mechanisms or by the shell extensions (see [patches/README.md](patches/README.md)).
+- **v0.11.1 required zero patches; v0.12.1 adds two**: all 8 registered candidates are covered
+  by existing upstream mechanisms or by the shell extensions; v0.12.1 additionally carries two
+  idempotent, reversible patches under [`patches/v0.12.1/`](patches/v0.12.1/) — `0001-workspace-picker-roots`
+  (workspace-root tabs in the directory browser) and `0002-session-export-in-process-fallback`
+  (session export inside the in-process server). See [patches/README.md](patches/README.md).
 - **Branding is applied to the upstream artifact copy** (requirement 103): UI text, the Logo and
   every icon slot use parent-project assets, and the home page's new-version check is disabled;
   `pi` / `pi-web` / `harmonypc-electron` are **untouched**.
@@ -131,7 +138,7 @@ pi-desktop-hos/
 ├── src-main/                    # Electron main-process sources (main.js + tar-extract.js)
 ├── scripts/                     # five-stage build pipeline + host-side gate + branding + signing scripts
 ├── runtime-overlays/            # "copy then overlay" whitelist (protects our customizations from being overwritten)
-├── patches/                     # upstream patch set (empty for this version; see that directory's README)
+├── patches/                     # idempotent upstream patches (v0.11.1: none; v0.12.1: two — see that directory's README)
 ├── config/                      # runtime preset templates (settings.json / mcp.json)
 ├── extensions/                  # shell-specific pi extensions (pure-JS bash / find / grep)
 ├── skills/                      # shell-specific pi skills
@@ -270,7 +277,7 @@ in [docs/工程规划.md](docs/工程规划.md) §11.4, §11.5.
 | Command execution (the `bash` tool) | ✅ | Replaced under the same name by `extensions/harmony-exec.js`: a resident non-PTY `/system/bin/sh` (mksh R59) + a random sentinel line; completion is judged from stdout alone and **never waits** for `exit`/`close` |
 | File lookup / content search (the `find` / `grep` tools) | ✅ | Replaced under the same names by `extensions/harmony-search.js`: a pure-JS walk with **zero `fd`/`rg` and zero child processes**; `rg`/`fd` are still absent, but no longer needed |
 | Terminal panel / PTY | ❌ | `node-pty` ships only `darwin-arm64`/`win32-arm64` prebuilds (**proven L2**); whether the kernel also refuses PTY is **not disproven** |
-| `git` integration / worktree | ❌ | No `git` binary on the device, and no way to install one |
+| `git` integration / worktree | 🔧 | There is still no `git` binary on the device; requirement **204-plugin-git** instead ships the pure-JS **`harmony-git`** extension (isomorphic-git 1.44.2): 21 `git_*` tools + `git_credentials` covering the local lifecycle and HTTP(S) clone/fetch/push (no `rebase`/`blame`, no SSH remotes, no SHA-256 repos, no worktree). Code is assembled into the HAP and host-tested; a dedicated on-device round is not yet archived ([specs/204-plugin-git/](specs/204-plugin-git/)) |
 | Network plugin installation | ❌ | PL1 "local sources only" + `PI_OFFLINE=1`; no npm/git on the device |
 | MCP stdio servers | ⚠️ | The blocking root cause (child-exit events never delivered) was lifted with the `bash` takeover, and the channel was verified at the transport level; **no real MCP server has been attached** (`config/mcp.json` is empty) |
 | Running Node scripts in a child process | ❌ | `node -e` produces no stdout/stderr and the process becomes a zombie; the **termination cause could not be read** |

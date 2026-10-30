@@ -1,6 +1,6 @@
 # 插件·GIT 操作（204-plugin-git）—— 规格（pi-desktop-hos）
 
-> **Module:** 204-plugin-git ｜ **Status:** Proposed ｜ **Last Updated:** 2026-10-18
+> **Module:** 204-plugin-git ｜ **Status:** Implemented (host-side; code assembled, dedicated on-device round pending) ｜ **Last Updated:** 2026-10-29
 > **上游基线:** pi v1.2.0 ｜ pi-web ｜ Electron-on-鸿蒙（进程内 Node 22.17.0）
 > **需求编号:** 204-plugin-git ｜ **需求名称:** 插件：GIT 操作
 > **git 分支:** 不改动（沿用纪律：不新建、不切换、不重命名；main）

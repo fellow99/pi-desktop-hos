@@ -1,8 +1,8 @@
-# 101 — 版本更新：0.11.1（version）技术方案
+# 011 — 版本更新：0.11.1（version）技术方案
 
 > **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
 > **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）
-> **需求编号:** 101-version-0.11.1
+> **需求编号:** 011-version-0.11.1
 > **规格依据:** [`spec.md`](./spec.md)（FR-ver-001 … FR-ver-025）
 > **规划依据:** `docs/工程规划.md` §2.4c、§7、§8.1、§11.3、§11.5
 

@@ -1,8 +1,8 @@
-# 103 — 品牌化：Pi Desktop 文案 / Logo / 图标 / 禁用版本检测 功能规格
+# 013 — 品牌化：Pi Desktop 文案 / Logo / 图标 / 禁用版本检测 功能规格
 
-> **Module:** branding ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
-> **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）· harmonypc-electron v37.2.3
-> **需求编号:** 103-branding ｜ **需求名称:** UI 品牌化与图标物料统一
+> **Module:** branding ｜ **Status:** Implemented ｜ **Last Updated:** 2026-10-31
+> **上游基线:** pi v1.2.0（Branch_v1.2.0）· pi-web v0.12.1（Branch_v0.12.1）· harmonypc-electron v37.2.3（实施轮次为 0.11.1）
+> **需求编号:** 013-branding ｜ **需求名称:** UI 品牌化与图标物料统一
 > **git 分支:** 不改动（沿用 101/102 的纪律：不新建、不切换、不重命名）
 > **物料来源:** **父工程** `../assets/`（本机 `D:\pi-workspace\assets\`）—— `logo.png`（200×200，含透明通道）、
 > `logo.svg`（矢量）、`logo-1024-with-bg.png`（1024×1024，**完全不透明**）

@@ -1,7 +1,7 @@
-# 102 — 鸿蒙环境能力补齐：纯 JS 工具插件（harmony-js-tools）测试用例与执行结果
+# 106 — 鸿蒙环境能力补齐：纯 JS 工具插件（harmony-js-tools）测试用例与执行结果
 
 > **Module:** harmony-js-tools ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
-> **需求编号:** 102-harmony-js-tools ｜ **规格:** [`spec.md`](./spec.md)（FR-tool-001…027 / AC-01…15）
+> **需求编号:** 106-harmony-js-tools ｜ **规格:** [`spec.md`](./spec.md)（FR-tool-001…027 / AC-01…15）
 > **方案:** [`plan.md`](./plan.md) ｜ **任务:** [`tasks.md`](./tasks.md)
 > **原始取证:** `logs/20261012-2/`（不入库）。图例：✅ 通过 ｜ ❌ 失败 ｜ ⬜ 未执行
 

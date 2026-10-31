@@ -44,10 +44,10 @@
 鸿蒙资源编译器会对 `app_icon.png` 做**自己的重编码**（`resConfig.json` 里 `iconCheck: true`）。
 实测：源文件 1024×1024 无 alpha（`fe006dfd…`）→ HAP 内条目变成 **512×512、带 alpha 通道**；
 其余四个图标与状态栏字形在 HAP 内**逐字节等同**于生成物。这不是本工程的问题，
-但**验收时必须区分「源资产」与「编译器产物」**（`specs/103-branding/test-cases.md` TC-03）。
+但**验收时必须区分「源资产」与「编译器产物」**（`specs/013-branding/test-cases.md` TC-03）。
 
 ## 与规划文档的对应
 
 - 上架前置清单（图标不透明、命名禁用词等）：`docs/工程规划.md` §11.5
 - 参考工程被驳回的图标问题原文与分析：§2.4c
-- 本规则的需求与验收：`specs/103-branding/spec.md`（FR-brand-007…011 / AC-04…06）
+- 本规则的需求与验收：`specs/013-branding/spec.md`（FR-brand-007…011 / AC-04…06）

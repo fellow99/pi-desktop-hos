@@ -1,7 +1,7 @@
-# 101 — 版本更新：0.11.1（version）任务拆解
+# 011 — 版本更新：0.11.1（version）任务拆解
 
 > **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
-> **需求编号:** 101-version-0.11.1 ｜ **上游基线:** pi v1.1.0 · pi-web v0.11.1
+> **需求编号:** 011-version-0.11.1 ｜ **上游基线:** pi v1.1.0 · pi-web v0.11.1
 > **规格依据:** [`spec.md`](./spec.md) ｜ **方案依据:** [`plan.md`](./plan.md)
 > **日志目录:** `logs/20261012-1/`
 

@@ -45,11 +45,11 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 
 | 需求 | 规格目录 | 交付内容 | 真机轮次 |
 |---|---|---|---|
-| `001-host` | [specs/001-host/](specs/001-host/) | Host 宿主：环境装配、进程内 Next 服务器、HTTP 轮询就绪判定、随机密码与凭据注入 | 轮次 1 |
-| `101-version-0.11.1` | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | 版本收敛到 `0.11.1` / `1101`；清理中间物后全流水线重建与字节级可复现性；产出环境能力清单 | 轮次 2、2b |
-| `101-version-0.12.1` | [specs/101-version-0.12.1/](specs/101-version-0.12.1/) | 版本收敛到 `0.12.1` / `1201`；上游升级到 `pi` v1.2.0 + `pi-web` v0.12.1，既有 2 条补丁复核后在 `patches/v0.12.1/` 重新生成；全流水线重建；环境能力清单复测 | 轮次 7 |
-| `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | 用随包**纯 JS 扩展**同名顶替 `bash` / `find` / `grep`；**上游与补丁集零改动** | 轮次 3、3b、3c |
-| `103-branding` | [specs/103-branding/](specs/103-branding/) | 界面品牌改 `Pi Desktop`、Logo/图标改用父工程物料、禁用新版本检测（上游零改动） | 轮次 4 |
+| `101-host` | [specs/101-host/](specs/101-host/) | Host 宿主：环境装配、进程内 Next 服务器、HTTP 轮询就绪判定、随机密码与凭据注入 | 轮次 1 |
+| `011-version-0.11.1` | [specs/011-version-0.11.1/](specs/011-version-0.11.1/) | 版本收敛到 `0.11.1` / `1101`；清理中间物后全流水线重建与字节级可复现性；产出环境能力清单 | 轮次 2、2b |
+| `011-version-0.12.1` | [specs/011-version-0.12.1/](specs/011-version-0.12.1/) | 版本收敛到 `0.12.1` / `1201`；上游升级到 `pi` v1.2.0 + `pi-web` v0.12.1，既有 2 条补丁复核后在 `patches/v0.12.1/` 重新生成；全流水线重建；环境能力清单复测 | 轮次 7 |
+| `106-harmony-js-tools` | [specs/106-harmony-js-tools/](specs/106-harmony-js-tools/) | 用随包**纯 JS 扩展**同名顶替 `bash` / `find` / `grep`；**上游与补丁集零改动** | 轮次 3、3b、3c |
+| `013-branding` | [specs/013-branding/](specs/013-branding/) | 界面品牌改 `Pi Desktop`、Logo/图标改用父工程物料、禁用新版本检测（上游零改动） | 轮次 4 |
 | `203-plugin-workspace-picker` | [specs/203-plugin-workspace-picker/](specs/203-plugin-workspace-picker/) | 目录浏览的工作区根 Tab + 面包屑围栏；根清单由宿主能力桥供数；对应 pi-web 补丁 `0001` | 已实现（真机注记见规格） |
 | `204-plugin-git` | [specs/204-plugin-git/](specs/204-plugin-git/) | 纯 JS **`harmony-git`** 扩展（isomorphic-git 1.44.2），注册 21 个 `git_*` 工具 + `git_credentials`；ark/android 姊妹工程从此单源同步；不依赖系统 git 二进制 | 🔧 已实现并随包；专项真机轮次尚未归档 |
 
@@ -178,7 +178,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release �
 > 品牌化只作用于**本工程自己的产物**（`AppScope/`、overlay 源、`pi-dist/` 副本），
 > 上游 `../pi`、`../pi-web`、`../harmonypc-electron` **零改动**（`patches/` 仍为空）。
 > 单独重刷品牌物料（改了 `../assets/` 之后）：`node scripts/brand-assets.mjs`；
-> 物料缺失即**硬失败**，不静默降级。详见 `specs/103-branding/`、`docs/media-placeholder-icons.md`。
+> 物料缺失即**硬失败**，不静默降级。详见 `specs/013-branding/`、`docs/media-placeholder-icons.md`。
 
 宿主侧回归测试（零设备运行，覆盖纯 JS 的搜索扩展）：`node scripts/test-harmony-tools.mjs`。
 
@@ -233,7 +233,7 @@ hdc fport tcp:19229 tcp:9229               # CDP 调试（仅 debug 构建；生
 
 可直接照填 AGC 表单的申请文案、完整权限清单与提交纪律见
 [docs/ACL申请清单.md](docs/ACL申请清单.md)；模块规格见
-[specs/006-signing-identity/](specs/006-signing-identity/)；上架前置清单见
+[specs/108-signing-identity/](specs/108-signing-identity/)；上架前置清单见
 [docs/工程规划.md](docs/工程规划.md) §11.4、§11.5。
 
 ## 能力边界（设备侧已知限制）
@@ -272,11 +272,11 @@ hdc fport tcp:19229 tcp:9229               # CDP 调试（仅 debug 构建；生
 | [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | 图标物料与生成规则（需求 103） |
 | [docs/ACL申请清单.md](docs/ACL申请清单.md) | ACL 申请手册：3 项受限权限的**可直接照填**申请文案、21 项开放权限清单与「不申请」清单 |
 | [specs/README.md](specs/README.md) | 规格索引、文档规范与版本需求（101+）清单 |
-| [specs/001-host/](specs/001-host/) | Host 宿主（环境装配 / 进程内服务器 / 就绪判定） |
-| [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | 版本收敛 0.11.1（spec / plan / tasks / test-cases） |
-| [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | 纯 JS 工具扩展：`bash` / `find` / `grep` 同名顶替 |
-| [specs/103-branding/](specs/103-branding/) | 品牌化：文案 / Logo / 图标物料 / 禁用版本检测 |
-| [specs/006-signing-identity/](specs/006-signing-identity/) | 签名与应用身份：bundleName / 显示名、签名材料仅内存注入、ACL 归属、`versionCode` |
+| [specs/101-host/](specs/101-host/) | Host 宿主（环境装配 / 进程内服务器 / 就绪判定） |
+| [specs/011-version-0.11.1/](specs/011-version-0.11.1/) | 版本收敛 0.11.1（spec / plan / tasks / test-cases） |
+| [specs/106-harmony-js-tools/](specs/106-harmony-js-tools/) | 纯 JS 工具扩展：`bash` / `find` / `grep` 同名顶替 |
+| [specs/013-branding/](specs/013-branding/) | 品牌化：文案 / Logo / 图标物料 / 禁用版本检测 |
+| [specs/108-signing-identity/](specs/108-signing-identity/) | 签名与应用身份：bundleName / 显示名、签名材料仅内存注入、ACL 归属、`versionCode` |
 | [runtime-overlays/README.md](runtime-overlays/README.md) | 运行时定制清单与 prune/overlay 机制（23 个文件） |
 | [patches/README.md](patches/README.md) | 为什么本版本补丁集为空（8 条候选逐条源码核实） |
 | [config/README.md](config/README.md) | 运行时预置配置的每个键为什么这样设 |

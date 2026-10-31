@@ -1,8 +1,8 @@
-# 102 — 鸿蒙环境能力补齐：纯 JS 工具插件（harmony-js-tools）功能规格
+# 106 — 鸿蒙环境能力补齐：纯 JS 工具插件（harmony-js-tools）功能规格
 
 > **Module:** harmony-js-tools ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
 > **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）
-> **需求编号:** 102-harmony-js-tools ｜ **需求名称:** 环境能力补齐（纯 JS 工具插件）
+> **需求编号:** 106-harmony-js-tools ｜ **需求名称:** 环境能力补齐（纯 JS 工具插件）
 > **git 分支:** 不改动（沿用 101 的分支纪律：不新建、不切换、不重命名）
 > **依据:** [`../docs/鸿蒙环境能力清单-v0.11.1.md`](../docs/鸿蒙环境能力清单-v0.11.1.md)（结论权威）
 > 参考工程: `dsh-desktop-hos/plugins/README.md`（**仓库外**：`d:\deepseek-harness-workspace\dsh-desktop-hos\plugins\`）

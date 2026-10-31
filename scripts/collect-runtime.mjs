@@ -364,7 +364,7 @@ print(f'{wrote} {kept}')
  *
  * 为什么放在阶段 1 之前：阶段 1 是**整目录覆盖**拷贝上游外壳，阶段 3 才回盖 overlay；
  * overlay 源（`runtime-overlays/web_engine/.../electron_white.png`）必须先被写成品牌字形，
- * 否则阶段 3 会把旧字节盖回工作树。详见 `scripts/brand-assets.mjs` 与 `specs/103-branding/`。
+ * 否则阶段 3 会把旧字节盖回工作树。详见 `scripts/brand-assets.mjs` 与 `specs/013-branding/`。
  */
 function stage05BrandAssets() {
   stageBanner('0.5', '品牌化图标物料（父工程 assets/）');

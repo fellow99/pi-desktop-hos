@@ -1,7 +1,7 @@
-# 101 — 版本更新：0.12.1（version）任务拆解
+# 011 — 版本更新：0.12.1（version）任务拆解
 
-> **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-15
-> **需求编号:** 101-version-0.12.1 ｜ **上游基线:** pi v1.2.0 · pi-web v0.12.1
+> **Module:** version ｜ **Status:** Implemented ｜ **Last Updated:** 2026-10-31
+> **需求编号:** 011-version-0.12.1 ｜ **上游基线:** pi v1.2.0 · pi-web v0.12.1
 > **规格依据:** [`spec.md`](./spec.md) ｜ **方案依据:** [`plan.md`](./plan.md)
 > **日志目录:** `logs/20261015-1/`
 
@@ -57,7 +57,7 @@ T01 ─┬─ T02 ─ T03 ─┐
 |---|---|
 | 回引 | FR-ver-013、FR-ver-014、FR-ver-015、FR-ver-016；AC-05 |
 | 动作 | ① `AppScope/app.json5`：`versionName = "0.12.1"`、`versionCode = 1201`，注释写明公式 `major*10000 + minor*100 + patch`（`0.12.1 -> 0*10000 + 12*100 + 1 = 1201`）；② `src-main/package.json`：`version: 0.12.1`；③ `README.md` / `README_zh.md`：版本行 + 上游基线行（`pi v1.2.0` / `pi-web v0.12.1`）+ specs 表新增 101 行 + 能力清单链接改指 `v0.12.1`；④ `docs/工程规划.md`：文档头与 §11 相关行；⑤ `specs/README.md`：技术栈行 + §六/§七编号一览增行 |
-| 完成判据 | `versionName == "0.12.1"` 且 `versionCode == 1201`（**严格大于** 1101）；`git grep "0\.11\.1"` 仅命中**可解释的历史/说明性出现**（`docs/真机验证记录.md` 历史轮次那当时值、`specs/101-version-0.11.1/*`、`patches/v0.11.1/` 登记），无「应为 0.12.1 却残留 0.11.1」的对外可见处 |
+| 完成判据 | `versionName == "0.12.1"` 且 `versionCode == 1201`（**严格大于** 1101）；`git grep "0\.11\.1"` 仅命中**可解释的历史/说明性出现**（`docs/真机验证记录.md` 历史轮次那当时值、`specs/011-version-0.11.1/*`、`patches/v0.11.1/` 登记），无「应为 0.12.1 却残留 0.11.1」的对外可见处 |
 | 产出 | 上述改动文件 + `logs/20261015-1/T04-version.txt` |
 
 ### T05 — 全流水线重新构建（4 阶段）

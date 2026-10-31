@@ -1,4 +1,4 @@
-# 001 — Host 宿主（host）技术实现方案
+# 101 — Host 宿主（host）技术实现方案
 
 > **Module:** host ｜ **Status:** Proposed ｜ **Last Updated:** 2026-10-11
 > **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）
@@ -326,4 +326,4 @@ SHA-256 marker 讨论。
 - 规划：`docs/工程规划.md` §4.2、§4.4、§4.5、§4.6、§4.9、§8.1、§11.1
 - 上游：`pi-web/bin/pi-web.js`、`pi-web/bin/rotate-preview-secrets.js`、
   `pi-web/bin/pi-web-options.js`、`pi-web/lib/request-security.ts`、`pi-web/proxy.ts`
-- 同型工程对照：`dsh-desktop-hos/specs/001-host/plan.md`、`dsh-desktop-hos/src-main/main.js`
+- 同型工程对照：`dsh-desktop-hos/specs/101-host/plan.md`、`dsh-desktop-hos/src-main/main.js`

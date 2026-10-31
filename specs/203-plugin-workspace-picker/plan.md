@@ -181,7 +181,7 @@
 
 **修改**：`src-main/main.js`、`scripts/prepare-next.mjs`、`patches/README.md`、`docs/工程规划.md`、`specs/README.md`、`skills/harmony-runtime-capabilities/SKILL.md`、`docs/真机验证记录.md`、`docs/鸿蒙环境能力清单-v0.11.1.md`（如需）、`README.md`/`README_zh.md`（如需）。
 
-**明确排除**：`build-profile.json5`（工作树含本地调试签名材料，见 `specs/006-signing-identity/spec.md` FR-006-006）；`../pi-web`（只经补丁）、`../pi`、`../harmonypc-electron`。
+**明确排除**：`build-profile.json5`（工作树含本地调试签名材料，见 `specs/108-signing-identity/spec.md` FR-108-006）；`../pi-web`（只经补丁）、`../pi`、`../harmonypc-electron`。
 
 ## 11. 验证策略
 

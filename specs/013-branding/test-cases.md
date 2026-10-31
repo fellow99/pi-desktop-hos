@@ -1,7 +1,7 @@
-# 103 — 品牌化测试用例与执行结果
+# 013 — 品牌化测试用例与执行结果
 
 > **Module:** branding ｜ **Status:** Done ｜ **Last Updated:** 2026-10-12
-> **需求编号:** 103-branding ｜ **规格:** [`spec.md`](./spec.md)（FR-brand-001…015 / AC-01…13）
+> **需求编号:** 013-branding ｜ **规格:** [`spec.md`](./spec.md)（FR-brand-001…015 / AC-01…13）
 > **方案:** [`plan.md`](./plan.md) ｜ **任务:** [`tasks.md`](./tasks.md)
 > **原始取证:** `logs/20261012-3/`（不入库）。图例：✅ 通过 ｜ ❌ 失败 ｜ ⬜ 未执行
 

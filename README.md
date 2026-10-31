@@ -53,11 +53,11 @@ for more complex ones.
 
 | Requirement | Spec directory | Deliverable | On-device round |
 |---|---|---|---|
-| `001-host` | [specs/001-host/](specs/001-host/) | Host: environment wiring, in-process Next server, HTTP-polling readiness check, random password and credential injection | Round 1 |
-| `101-version-0.11.1` | [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | Version convergence to `0.11.1` / `1101`; full-pipeline rebuild after cleaning intermediates with byte-level reproducibility; capability inventory produced | Rounds 2, 2b |
-| `101-version-0.12.1` | [specs/101-version-0.12.1/](specs/101-version-0.12.1/) | Version convergence to `0.12.1` / `1201`; upstream rebase to `pi` v1.2.0 + `pi-web` v0.12.1 with the two existing patches re-evaluated and regenerated under `patches/v0.12.1/`; full-pipeline rebuild; capability inventory re-measured | Round 7 |
-| `102-harmony-js-tools` | [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | **Pure-JS extensions** shipped in the HAP take over `bash` / `find` / `grep` under the same tool names; **zero upstream or patch changes** | Rounds 3, 3b, 3c |
-| `103-branding` | [specs/103-branding/](specs/103-branding/) | UI branding switched to `Pi Desktop`, Logo/icons generated from parent-project assets, new-version check disabled (zero upstream changes) | Round 4 |
+| `101-host` | [specs/101-host/](specs/101-host/) | Host: environment wiring, in-process Next server, HTTP-polling readiness check, random password and credential injection | Round 1 |
+| `011-version-0.11.1` | [specs/011-version-0.11.1/](specs/011-version-0.11.1/) | Version convergence to `0.11.1` / `1101`; full-pipeline rebuild after cleaning intermediates with byte-level reproducibility; capability inventory produced | Rounds 2, 2b |
+| `011-version-0.12.1` | [specs/011-version-0.12.1/](specs/011-version-0.12.1/) | Version convergence to `0.12.1` / `1201`; upstream rebase to `pi` v1.2.0 + `pi-web` v0.12.1 with the two existing patches re-evaluated and regenerated under `patches/v0.12.1/`; full-pipeline rebuild; capability inventory re-measured | Round 7 |
+| `106-harmony-js-tools` | [specs/106-harmony-js-tools/](specs/106-harmony-js-tools/) | **Pure-JS extensions** shipped in the HAP take over `bash` / `find` / `grep` under the same tool names; **zero upstream or patch changes** | Rounds 3, 3b, 3c |
+| `013-branding` | [specs/013-branding/](specs/013-branding/) | UI branding switched to `Pi Desktop`, Logo/icons generated from parent-project assets, new-version check disabled (zero upstream changes) | Round 4 |
 | `203-plugin-workspace-picker` | [specs/203-plugin-workspace-picker/](specs/203-plugin-workspace-picker/) | Workspace-root tabs + breadcrumb fence in the directory browser; roots fed by the host capability bridge; pi-web patch `0001` | Implemented (see on-device notes in the spec) |
 | `204-plugin-git` | [specs/204-plugin-git/](specs/204-plugin-git/) | Pure-JS **`harmony-git`** extension (isomorphic-git 1.44.2) registering 21 `git_*` tools + `git_credentials`; single-source for the ark/android sibling copies; no system git binary needed | 🔧 implemented & assembled; dedicated on-device round not yet archived |
 
@@ -201,7 +201,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release-s
 > `pi-dist/` copy); upstream `../pi`, `../pi-web` and `../harmonypc-electron` are **untouched**
 > (`patches/` is still empty). To regenerate brand assets alone (after changing `../assets/`):
 > `node scripts/brand-assets.mjs`; missing assets cause a **hard failure**, never a silent
-> downgrade. See `specs/103-branding/` and `docs/media-placeholder-icons.md`.
+> downgrade. See `specs/013-branding/` and `docs/media-placeholder-icons.md`.
 
 Host-side regression test (runs with no device; covers the pure-JS search extension):
 `node scripts/test-harmony-tools.mjs`.
@@ -259,7 +259,7 @@ own), `ALLOW_EXTERNAL_NATIVE_CODE`, `kernel.LOAD_INDEPENDENT_LIBRARY`,
 
 Ready-to-paste ACL application text, the full permission inventory, and the submission rules are
 in [docs/ACL申请清单.md](docs/ACL申请清单.md); the module spec is in
-[specs/006-signing-identity/](specs/006-signing-identity/); the app-store pre-flight checklist is
+[specs/108-signing-identity/](specs/108-signing-identity/); the app-store pre-flight checklist is
 in [docs/工程规划.md](docs/工程规划.md) §11.4, §11.5.
 
 ## Capability boundaries (known device-side limitations)
@@ -300,11 +300,11 @@ See [skills/harmony-runtime-capabilities/SKILL.md](skills/harmony-runtime-capabi
 | [docs/media-placeholder-icons.md](docs/media-placeholder-icons.md) | Icon assets and generation rules (requirement 103) |
 | [docs/ACL申请清单.md](docs/ACL申请清单.md) | ACL application manual: the 3 restricted permissions with ready-to-paste text, the 21 open permissions, and what *not* to apply for |
 | [specs/README.md](specs/README.md) | Spec index, documentation rules, and the version-requirement (101+) list |
-| [specs/001-host/](specs/001-host/) | Host (environment wiring / in-process server / readiness check) |
-| [specs/101-version-0.11.1/](specs/101-version-0.11.1/) | Version convergence to 0.11.1 (spec / plan / tasks / test-cases) |
-| [specs/102-harmony-js-tools/](specs/102-harmony-js-tools/) | Pure-JS tool extensions: `bash` / `find` / `grep` taken over under the same names |
-| [specs/103-branding/](specs/103-branding/) | Branding: text / Logo / icon assets / version-check disabled |
-| [specs/006-signing-identity/](specs/006-signing-identity/) | Signing and app identity: bundleName / display name, in-memory signing injection, ACL ownership, `versionCode` |
+| [specs/101-host/](specs/101-host/) | Host (environment wiring / in-process server / readiness check) |
+| [specs/011-version-0.11.1/](specs/011-version-0.11.1/) | Version convergence to 0.11.1 (spec / plan / tasks / test-cases) |
+| [specs/106-harmony-js-tools/](specs/106-harmony-js-tools/) | Pure-JS tool extensions: `bash` / `find` / `grep` taken over under the same names |
+| [specs/013-branding/](specs/013-branding/) | Branding: text / Logo / icon assets / version-check disabled |
+| [specs/108-signing-identity/](specs/108-signing-identity/) | Signing and app identity: bundleName / display name, in-memory signing injection, ACL ownership, `versionCode` |
 | [runtime-overlays/README.md](runtime-overlays/README.md) | Runtime customization list and the prune/overlay mechanism (23 files) |
 | [patches/README.md](patches/README.md) | Why this version's patch set is empty (8 candidates verified against source, one by one) |
 | [config/README.md](config/README.md) | Why every runtime preset key is set the way it is |

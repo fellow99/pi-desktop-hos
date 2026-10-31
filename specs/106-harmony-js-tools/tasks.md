@@ -1,7 +1,7 @@
-# 102 — 鸿蒙环境能力补齐：纯 JS 工具插件（harmony-js-tools）任务拆解
+# 106 — 鸿蒙环境能力补齐：纯 JS 工具插件（harmony-js-tools）任务拆解
 
 > **Module:** harmony-js-tools ｜ **Status:** Done（已交付；含代码评审修复轮）｜ **Last Updated:** 2026-10-12
-> **需求编号:** 102-harmony-js-tools ｜ **规格:** [`spec.md`](./spec.md) ｜ **方案:** [`plan.md`](./plan.md)
+> **需求编号:** 106-harmony-js-tools ｜ **规格:** [`spec.md`](./spec.md) ｜ **方案:** [`plan.md`](./plan.md)
 > **日志目录:** `logs/20261012-2/`（当天序号 2）
 
 ## 依赖关系
@@ -33,7 +33,7 @@ T01(前置验证) ─┬─ T02(规范) ─ T03(exec) ─┐
 |---|---|
 | 回引 | — |
 | 动作 | 写 `spec.md`（27 条 FR + 15 条 AC）+ `plan.md`（D1–D10）+ `tasks.md` + `test-cases.md` |
-| 产出 | `specs/102-harmony-js-tools/` |
+| 产出 | `specs/106-harmony-js-tools/` |
 
 ### T03 — 实现 `extensions/harmony-exec.js`（顶替 `bash`）
 

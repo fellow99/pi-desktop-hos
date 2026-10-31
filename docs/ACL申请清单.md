@@ -6,7 +6,7 @@
 > **上游基线**：`pi` v1.1.0 · `pi-web` v0.11.1；运行期 Electron 37.2.3（Node 22.17.0 / Chromium / ABI v138）。
 > **数据来源**：本机 DevEco SDK 权威权限目录 `Sdk/23/toolchains/lib/PermissionDefinitions.json`（**第一手，722 条**）＋ `dsh-desktop-hos` 实际声明 ＋ 本工程 `module.json5` 实际声明。
 > **图例**：✅ **已声明/已实测** ｜ 🔶 **沿用** ｜ ⬜ **待申请/待验证** ｜ ❌ **不申请** ｜ ℹ️ **开放权限（仅需声明，无需 ACL）**。
-> **配套**：能力边界见 `docs/鸿蒙环境能力清单-v0.11.1.md`；本模块规格见 `specs/006-signing-identity/`；规划结论见 `docs/工程规划.md` §11.4。
+> **配套**：能力边界见 `docs/鸿蒙环境能力清单-v0.11.1.md`；本模块规格见 `specs/108-signing-identity/`；规划结论见 `docs/工程规划.md` §11.4。
 
 ---
 
@@ -69,7 +69,7 @@
 
 - **`使用场景`**：应用启动与日常使用过程中，由内置运行时引擎自行编译脚本代码；用户不感知该过程，也不触发任何代码下载。
 - **🔶 沿用事实**：同型工程 `dsh-desktop-hos` 已把该权限同时写进其 `web_engine` 的 `requestPermissions` 与 `definePermissions` 并在真机正常运行；本工程照此落点，但**申请主体与包名必须换成本工程的**（ACL 与 bundleName + AGC 应用主体绑定，dsh 已获批的同类权限**不能转移**，⬜ 待工单确认口径）。
-- **⬜ 待实测的已知风险**：全新安装时受限权限可能被设备策略拒绝 → 需确认规避手段（`dsh-desktop-hos` 的做法是日常用 `hdc app install -r` 覆盖安装），结论落 `docs/真机验证记录.md`（spec FR-006-015）。
+- **⬜ 待实测的已知风险**：全新安装时受限权限可能被设备策略拒绝 → 需确认规避手段（`dsh-desktop-hos` 的做法是日常用 `hdc app install -r` 覆盖安装），结论落 `docs/真机验证记录.md`（spec FR-108-015）。
 
 ### 3.2 `READ_PASTEBOARD`
 
@@ -141,7 +141,7 @@
 | `ohos.permission.GET_DEVICE_INDEPENDENT_BINARY_CERT` / `SET_DEVICE_INDEPENDENT_BINARY_CERT_STATUS` | ACL | `system_core` / 仅 2in1，不可得 |
 | `CAMERA` / `MICROPHONE` / `LOCATION` / `APPROXIMATELY_LOCATION` / `LOCATION_IN_BACKGROUND` / `ACCESS_BLUETOOTH` / `DISTRIBUTED_DATASYNC` / `WEB_NATIVE_MESSAGING` | 已剪裁（**声明层**） | 上游默认带、本工程**已从两份 `module.json5` 删除**（相机/麦克风/定位/蓝牙对应的 adapter 与 jsbindings 同步剪裁；本桌面壳不提供这些能力）。⚠️ **`DISTRIBUTED_DATASYNC` 有残留**：`web_engine/src/main/ets/adapter/PermissionManagerAdapter.ets` 的 `needPermissions` 仍映射 `'distributed_datasync'`，且 `web_engine/src/main/ets/ability/ContinueAbility.ets` 仍有 `requestPermissionsFromUser` 调用点 —— 因**声明已删**，这些调用**失败关闭**（fail-closed，不会越权），但「依赖同步剪裁」的表述对该项不准确，登记为 ⬜ 待清理（属运行时集成范围，不影响本轮 ACL 声明与申请） |
 
-> ⚠️ **禁止清单必须被守卫**（spec FR-006-013）：以上项 MUST NOT 出现在 `web_engine` 与 `electron` 两份 `module.json5` 中。
+> ⚠️ **禁止清单必须被守卫**（spec FR-108-013）：以上项 MUST NOT 出现在 `web_engine` 与 `electron` 两份 `module.json5` 中。
 
 ---
 
@@ -217,4 +217,4 @@
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
-| v1 | 2026-10-14 | 首版落盘（需求 `006-signing-identity`）。依据本机 SDK 23 `PermissionDefinitions.json` 对全部 24 项声明逐条复核，确认**需 ACL 恰为 3 项**（`kernel.ALLOW_WRITABLE_CODE_MEMORY` / `READ_PASTEBOARD` / `READ_WRITE_DESKTOP_DIRECTORY`）与 **21 项开放权限**；给出可直接照填 AGC 表单的申请原因与使用场景；核对声明面与 `dsh-desktop-hos` 逐项一致（§7.1）；修正 `docs/工程规划.md` §11.4 中「`READ_WRITE_DESKTOP_DIRECTORY` 不需要申请」的口径矛盾 |
+| v1 | 2026-10-14 | 首版落盘（需求 `108-signing-identity`）。依据本机 SDK 23 `PermissionDefinitions.json` 对全部 24 项声明逐条复核，确认**需 ACL 恰为 3 项**（`kernel.ALLOW_WRITABLE_CODE_MEMORY` / `READ_PASTEBOARD` / `READ_WRITE_DESKTOP_DIRECTORY`）与 **21 项开放权限**；给出可直接照填 AGC 表单的申请原因与使用场景；核对声明面与 `dsh-desktop-hos` 逐项一致（§7.1）；修正 `docs/工程规划.md` §11.4 中「`READ_WRITE_DESKTOP_DIRECTORY` 不需要申请」的口径矛盾 |

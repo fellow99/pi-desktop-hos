@@ -1,4 +1,4 @@
-# 001 — Host 宿主（host）功能规格
+# 101 — Host 宿主（host）功能规格
 
 > **Module:** host ｜ **Status:** Proposed ｜ **Last Updated:** 2026-10-11
 > **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）
@@ -147,4 +147,4 @@ Host 宿主的职责是：**在 Electron 主进程（Node 22.17.0）内把 pi-we
 - `docs/工程规划.md` §4.2（宿主形态）、§4.4（运行时选型与 Node 错位）、§4.5（网络与安全）、
   §4.6（沙箱映射）、§4.9（启动时序）、§8.1（流水线阶段 ②′）、§11.1 R2/R3
 - `pi-web/bin/pi-web.js`、`pi-web/bin/rotate-preview-secrets.js`、`pi-web/lib/request-security.ts`
-- `dsh-desktop-hos/specs/001-host/{spec.md,plan.md}`（同型工程的对照实现，形态不同但问题域相同）
+- `dsh-desktop-hos/specs/101-host/{spec.md,plan.md}`（同型工程的对照实现，形态不同但问题域相同）

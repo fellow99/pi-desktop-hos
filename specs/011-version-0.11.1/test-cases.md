@@ -1,7 +1,7 @@
-# 101 — 版本更新：0.11.1（version）测试用例与执行结果
+# 011 — 版本更新：0.11.1（version）测试用例与执行结果
 
 > **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
-> **需求编号:** 101-version-0.11.1 ｜ **上游基线:** pi v1.1.0 · pi-web v0.11.1
+> **需求编号:** 011-version-0.11.1 ｜ **上游基线:** pi v1.1.0 · pi-web v0.11.1
 > **规格依据:** [`spec.md`](./spec.md) ｜ **方案依据:** [`plan.md`](./plan.md) ｜ **任务:** [`tasks.md`](./tasks.md)
 > **原始取证:** `logs/20261012-1/`（本轮日志目录，不入库）
 
@@ -20,7 +20,7 @@
 | TC-07 | 补丁集复核 | 逐条读 `pi`/`pi-web` 源码 | **8 个候选**（7 条原有 + 1 条本轮新增）逐条有依据 | ✅ 结论 0 条：候选 1–7「不需要补丁」各有文件级依据；候选 8 登记「需要处置、但按 R14 首选零补丁路线，本轮不补」 | `patches/README.md` §v0.11.1 复核 |
 | TC-08 | `versionName` 同步 | 读 `AppScope/app.json5` | `0.11.1` | ✅ | `git diff` |
 | TC-09 | `versionCode` 递增且语义一致 | 读 + 与 HAP `pack.info` 交叉 | `1101 > 1000`，且 `pack.info.version.name == "0.11.1"` | ✅ | `T05-7-hap.txt` |
-| TC-10 | 版本号无残留 | `git grep "0\.1\.0"` | 仅命中「可解释的历史/说明性出现」 | ✅ 4 处、逐处可解释：`docs/真机验证记录.md`（轮次 0 当时值）、`AppScope/app.json5`（新增注释**在解释**旧值）、`specs/101-version-0.11.1/*`（本需求正文在描述这次变更） | `git grep` |
+| TC-10 | 版本号无残留 | `git grep "0\.1\.0"` | 仅命中「可解释的历史/说明性出现」 | ✅ 4 处、逐处可解释：`docs/真机验证记录.md`（轮次 0 当时值）、`AppScope/app.json5`（新增注释**在解释**旧值）、`specs/011-version-0.11.1/*`（本需求正文在描述这次变更） | `git grep` |
 | TC-11 | ① `collect-runtime` 全守卫 PASS | `node scripts/collect-runtime.mjs` | 守卫零 FAIL | ✅ 46 PASS | `T05-1-collect-runtime.log` |
 | TC-12 | ② `prepare-next` 用 Node 22.17.0 构建 | `prepare-next.mjs --node <node22>` | BUILD 成功，产物断言通过 | ✅ | `T05-2-prepare-next.log` |
 | TC-13 | ②′ 门禁 0 FAIL | `smoke-node22.mjs` | PASS≥9，FAIL=0 | ✅ 9 PASS / 1 SKIP / 0 FAIL | `T05-3-smoke.log` |

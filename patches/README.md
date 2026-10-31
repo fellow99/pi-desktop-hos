@@ -118,7 +118,7 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 
 ---
 
-## v0.11.1 基线复核（2026-10-12，需求 101-version-0.11.1）
+## v0.11.1 基线复核（2026-10-12，需求 011-version-0.11.1）
 
 上游基线与上一轮**完全相同**（`pi` `v1.1.0` = `abe508e1b`，`Branch_v1.1.0`；`pi-web`
 `v0.11.1^{commit}` = `e78372193b`，`Branch_v0.11.1`；两者工作树干净）。本节是**复核留痕**，
@@ -141,7 +141,7 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 
 1. **既有决策优先**：`docs/工程规划.md` R14 的首选路线是「**壳扩展替换/包装 `bash` 工具**」
    （零上游补丁），最小上游补丁只是**次选**，且标记为**待决策**。
-2. **本需求范围**：101-version-0.11.1 是版本收敛 + 验证，`specs/101-version-0.11.1/spec.md` §2 已把
+2. **本需求范围**：011-version-0.11.1 是版本收敛 + 验证，`specs/011-version-0.11.1/spec.md` §2 已把
    「修 `bash` 工具」显式列为 Out of scope；本轮只**登记**该缺口（能力清单报告 + R14），
    不夹带行为改动。
 3. **最小补丁形状已探明**（供决策后使用）：在 `waitForChildProcess()` 内加 100–200 ms
@@ -163,7 +163,7 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 
 ---
 
-## v0.12.1 基线复核（2026-10-15，需求 101-version-0.12.1）
+## v0.12.1 基线复核（2026-10-15，需求 011-version-0.12.1）
 
 上游基线**升级**：`pi` `v1.1.0` → **`v1.2.0`**（`Branch_v1.2.0`，commit `06a466935536f8c9bcacb2d5efc0fc021be1bdff`；`git -C ../pi tag --points-at HEAD` = `v1.2.0`）；`pi-web` `v0.11.1` → **`v0.12.1`**（`Branch_v0.12.1`，剥离 commit `f83b1a502f8e434555a7153fe08e1c135dd65ca9`，与分支 HEAD 相同）。两者工作树干净（`git status --porcelain` 为空）。**本轮复核对上游只读**，逐条重读源码/文件，结论按「文件 : 位置」留痕。
 
@@ -191,7 +191,7 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 | 5 | 原生模块（PTY / sharp / koffi） | 不需要补丁 | `pi-web/package.json:62` `node-pty: 1.2.0-beta.15`；唯一使用是 `pi-web/lib/terminal-manager.ts:3`（`import type`，不触发加载）+ `:80/:84` 函数体内 `require("node-pty")` 的 try/catch（失败即终端面板降级）；`pi-web/next.config.ts:30` `images: { unoptimized: true }` 仍绕过 sharp。 |
 | 6 | 网络绑定 / Host·Origin 头改写 | 不需要补丁 | `pi-web/lib/request-security.ts:97` `if (isLoopbackHostname(hostname) || isIP(hostname)) return true;`；同源判定仍在 `:138-139`（`canonicalOrigin(origin) === requestOrigin`，origin 由 `protocol + host` 构造）→ 局域网 IP 字面量与同源请求天然通过，无需头改写。 |
 | 7 | symlink / hardlink / chmod 回退 | 不需要补丁（残余观察项） | 创建型调用仍为 **0 处**（`symlinkSync`/`linkSync` 只出现在 `pi-web/lib/*.test.mjs`）；`chmodSync` 仍为 4 处：`pi-web/lib/global-settings-file.ts:70`、`lib/mcp-config-file.ts:324`、`lib/provider-credential-store.ts:20,62`；真机行为见能力清单（沙箱 `hmfs` 的 `chmod` 如实生效）。 |
-| 8 | `pi` 的 `bash` 工具等待子进程结束 | **不需要补丁**（结论由「待决策」更新） | 上游该处**仍以事件为前置**：`pi/packages/coding-agent/src/core/tools/bash.ts:148` `await waitForChildProcess(child)` → `utils/child-process.ts:49`（决策路径仍是 `stdout`/`stderr` 的 `end` + `exit`/`close` 事件；v1.2.0 的 docblock 改为「`exit` 后等管道空闲、宽限计时器随每个 chunk 重新武装，参考 earendil-works/pi#5303」，**仍无轮询、无绝对截止时间**）。本工程**不再需要**该补丁：R14 已由**壳扩展同名顶替 `bash`**（`extensions/harmony-exec.js`，需求 `102-harmony-js-tools`）关闭，真机轮次 3 / 3b / 6 复验通过（`docs/工程规划.md` §1.2 表、§11.1）。⚠️ 若将来改回上游 `bash` 工具，该缺口仍在。 |
+| 8 | `pi` 的 `bash` 工具等待子进程结束 | **不需要补丁**（结论由「待决策」更新） | 上游该处**仍以事件为前置**：`pi/packages/coding-agent/src/core/tools/bash.ts:148` `await waitForChildProcess(child)` → `utils/child-process.ts:49`（决策路径仍是 `stdout`/`stderr` 的 `end` + `exit`/`close` 事件；v1.2.0 的 docblock 改为「`exit` 后等管道空闲、宽限计时器随每个 chunk 重新武装，参考 earendil-works/pi#5303」，**仍无轮询、无绝对截止时间**）。本工程**不再需要**该补丁：R14 已由**壳扩展同名顶替 `bash`**（`extensions/harmony-exec.js`，需求 `106-harmony-js-tools`）关闭，真机轮次 3 / 3b / 6 复验通过（`docs/工程规划.md` §1.2 表、§11.1）。⚠️ 若将来改回上游 `bash` 工具，该缺口仍在。 |
 
 ### 3. 复核方式与局限
 

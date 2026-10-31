@@ -192,9 +192,9 @@
 
 **本工程（被本模块消费）**：
 
-- `001-host`：沙箱环境装配（`HOME`/`userData`）、进程内 Next 服务器（FR-203-004 的同进程前提）。
+- `101-host`：沙箱环境装配（`HOME`/`userData`）、进程内 Next 服务器（FR-203-004 的同进程前提）。
 - `005-build-pipeline`：`scripts/prepare-next.mjs` 的补丁阶段（FR-203-021）、`collect-pi.mjs`（`extensions/` 物化）。
-- `006-signing-identity`：三项目录权限的声明与 ACL 归属（A4）。
+- `108-signing-identity`：三项目录权限的声明与 ACL 归属（A4）。
 
 **下游（消费本模块）**：
 

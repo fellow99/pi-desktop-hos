@@ -1,10 +1,10 @@
-# 101 — 版本更新：0.12.1（version）技术方案
+# 011 — 版本更新：0.12.1（version）技术方案
 
-> **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-15
+> **Module:** version ｜ **Status:** Implemented ｜ **Last Updated:** 2026-10-31
 > **上游基线:** pi v1.2.0（Branch_v1.2.0）· pi-web v0.12.1（Branch_v0.12.1）
-> **需求编号:** 101-version-0.12.1
+> **需求编号:** 011-version-0.12.1
 > **规格依据:** [`spec.md`](./spec.md)（FR-ver-001 … FR-ver-032）
-> **前序方案:** [`../101-version-0.11.1/plan.md`](../101-version-0.11.1/plan.md)（D1–D7 仍有效，本方案只写差异）
+> **前序方案:** [`../011-version-0.11.1/plan.md`](../011-version-0.11.1/plan.md)（D1–D7 仍有效，本方案只写差异）
 
 ## 1. 方案总览
 
@@ -97,7 +97,7 @@ git -C <scratch>/pw-v0.12.1 reset --hard            # 回到 pristine
 | 4 | `docs/工程规划.md` | 文档头（版本/状态/上游基线/产物字节数待回填）+ §11 相关行 |
 | 5 | `specs/README.md` | 技术栈行 + §六/§七编号一览增行 |
 
-**保留历史值**（FR-ver-016）：`docs/真机验证记录.md`（历史轮次表）、`specs/101-version-0.11.1/*`、
+**保留历史值**（FR-ver-016）：`docs/真机验证记录.md`（历史轮次表）、`specs/011-version-0.11.1/*`、
 `specs/203-plugin-workspace-picker/*` 的历史叙述。
 
 ### D6 — 本工程能力清单（落实 FR-ver-026/027/028/029）

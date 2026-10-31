@@ -4,7 +4,7 @@
  *
  * ## 为什么需要它
  *
- * 交付包里有两处「别人的品牌」必须换成我们自己的（`specs/103-branding/spec.md`）：
+ * 交付包里有两处「别人的品牌」必须换成我们自己的（`specs/013-branding/spec.md`）：
  *
  * 1. **应用图标**：`AppScope/resources/base/media/*` 与状态栏字形
  *    `runtime-overlays/web_engine/.../electron_white.png` 之前是参考工程拷贝来的**占位图**；
@@ -202,7 +202,7 @@ export function loadMaterial(argv = []) {
       : resolve(projectRoot, '..', 'assets');
 
   if (!existsSync(assetsDir)) {
-    fail(`物料目录不存在：${assetsDir}\n  品牌化依赖**父工程** assets/（见 specs/103-branding/spec.md）。\n  可用 --assets <dir> 或 PI_ASSETS_DIR 指定。`);
+    fail(`物料目录不存在：${assetsDir}\n  品牌化依赖**父工程** assets/（见 specs/013-branding/spec.md）。\n  可用 --assets <dir> 或 PI_ASSETS_DIR 指定。`);
   }
 
   const markSrc = join(assetsDir, 'logo.png');

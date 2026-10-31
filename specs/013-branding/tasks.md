@@ -1,7 +1,7 @@
-# 103 — 品牌化任务拆解（tasks）
+# 013 — 品牌化任务拆解（tasks）
 
 > **Module:** branding ｜ **Status:** Done（已交付；含代码评审轮）｜ **Last Updated:** 2026-10-12
-> **需求编号:** 103-branding ｜ **规格:** [`spec.md`](./spec.md) ｜ **方案:** [`plan.md`](./plan.md)
+> **需求编号:** 013-branding ｜ **规格:** [`spec.md`](./spec.md) ｜ **方案:** [`plan.md`](./plan.md)
 > **日志目录:** `logs/20261012-3/`（当天序号 3）
 
 ## 依赖关系
@@ -20,7 +20,7 @@ T01(规格) ─ T02(brand-assets) ─┬─ T03(接线 collect-runtime/collect-p
 | 项 | 内容 |
 |---|---|
 | 动作 | 写 `spec.md`（15 条 FR + 13 条 AC）/ `plan.md`（D1–D7）/ `tasks.md` / `test-cases.md` |
-| 产出 | `specs/103-branding/` |
+| 产出 | `specs/013-branding/` |
 
 ### T02 — 实现 `scripts/brand-assets.mjs`
 | 项 | 内容 |

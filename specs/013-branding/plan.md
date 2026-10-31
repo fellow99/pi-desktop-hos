@@ -1,6 +1,6 @@
-# 103 — 品牌化技术方案（plan）
+# 013 — 品牌化技术方案（plan）
 
-> **Module:** branding ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
+> **Module:** branding ｜ **Status:** Implemented ｜ **Last Updated:** 2026-10-31
 > **规格依据:** [`spec.md`](./spec.md)（FR-brand-001 … FR-brand-015 / AC-01 … AC-13）
 > **物料:** 父工程 `../assets/`（`logo.svg` 矢量 · `logo.png` 200² 透明标记 · `logo-1024-with-bg.png` 1024² 不透明母版）
 

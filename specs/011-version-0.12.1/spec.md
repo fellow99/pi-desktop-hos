@@ -1,11 +1,11 @@
-# 101 — 版本更新：0.12.1（version）功能规格
+# 011 — 版本更新：0.12.1（version）功能规格
 
-> **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-15
+> **Module:** version ｜ **Status:** Implemented ｜ **Last Updated:** 2026-10-31
 > **上游基线:** pi v1.2.0（Branch_v1.2.0）· pi-web v0.12.1（Branch_v0.12.1）
-> **需求编号:** 101-version-0.12.1 ｜ **需求名称:** 版本更新：0.12.1
+> **需求编号:** 011-version-0.12.1 ｜ **需求名称:** 版本更新：0.12.1
 > **Git 分支:** 不改动（在 `pi-desktop-hos` 当前分支 `main` 上直接产出，见 §6）
-> **规划依据:** `docs/工程规划.md` §2.4c、§7、§8.1、§11.3、§11.5；`specs/001-host/`
-> **前序版本:** [`../101-version-0.11.1/`](../101-version-0.11.1/)（同型流程，本版沿用其结构）
+> **规划依据:** `docs/工程规划.md` §2.4c、§7、§8.1、§11.3、§11.5；`specs/101-host/`
+> **前序版本:** [`../011-version-0.11.1/`](../011-version-0.11.1/)（同型流程，本版沿用其结构）
 
 ## 1. 目的
 
@@ -110,7 +110,7 @@
   `AppScope/app.json5`、`src-main/package.json`、`README.md`、`README_zh.md`、
   `docs/工程规划.md` 文档头与版本表、`specs/README.md`。
 - **FR-ver-015**（MUST）：`versionCode` 不得回退或与上一版相等（`docs/工程规划.md` §11.5 G7）。
-- **FR-ver-016**（MUST）：历史记录类文档（`docs/真机验证记录.md` 的历史轮次、`specs/101-version-0.11.1/`）
+- **FR-ver-016**（MUST）：历史记录类文档（`docs/真机验证记录.md` 的历史轮次、`specs/011-version-0.11.1/`）
   **保留**当时的版本号，并在 `docs/鸿蒙环境能力清单-v0.12.1.md` 或 plan 中显式说明「这些是历史值」。
 
 ### 4.5 构建与部署

@@ -3,6 +3,7 @@
 > **Module:** version ｜ **Status:** Implementing ｜ **Last Updated:** 2026-10-12
 > **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）
 > **需求编号:** 011-version-0.11.1 ｜ **需求名称:** 版本更新：0.11.1
+> **FR 别名:** `FR-ver-*` ↔ `011-version-0.11.1`（父工程宪法允许的语义前缀）
 > **Git 分支:** 不改动（在 pi-desktop-hos 当前分支 `main` 上直接产出，见 §6）
 > **规划依据:** `docs/工程规划.md` §2.4c、§7、§8.1、§11.3、§11.5；`specs/101-host/`
 

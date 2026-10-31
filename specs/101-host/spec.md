@@ -1,6 +1,7 @@
 # 101 — Host 宿主（host）功能规格
 
 > **Module:** host ｜ **Status:** Proposed ｜ **Last Updated:** 2026-10-11
+> **FR 别名:** `FR-host-*` ↔ `101-host`（父工程宪法允许的语义前缀）
 > **上游基线:** pi v1.1.0（Branch_v1.1.0）· pi-web v0.11.1（Branch_v0.11.1）
 > **实现落点:** `src-main/main.js`（构建期由 `scripts/collect-app.mjs` 投放到
 > `web_engine/src/main/resources/resfile/resources/app/`）

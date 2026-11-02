@@ -1,6 +1,6 @@
 # patches/ — 上游补丁集
 
-> **现状（2026-10-15）**：**2 条**补丁，均已在 **`patches/v0.12.1/`** 按当前上游 tag 重新生成并生效 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）；上一版基线的 `patches/v0.11.1/` 同名文件**保留可追溯**。
+> **现状（2026-11-02）**：**2 条**补丁。`patches/v0.12.1/` 按 v0.12.1 生成；**v0.13.0 上游该两条补丁涉及的文件未再变更，`patches/v0.13.0/` 为同内容副本并已在上游 v0.13.0 上验证可按序幂等应用**（`git apply --check` pristine 通过）；`patches/v0.12.1/` 与 `patches/v0.11.1/` 保留可追溯 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）；上一版基线的 `patches/v0.11.1/` 同名文件**保留可追溯**。
 > 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
 ## 0. 已登记补丁

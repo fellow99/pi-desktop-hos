@@ -4,11 +4,11 @@
     "vendor": "fellow99",
     // versionCode 编码规则（见 specs/011-version-0.12.1/plan.md D1）：
     //   versionCode = major * 10000 + minor * 100 + patch
-    //   0.12.1 -> 0 * 10000 + 12 * 100 + 1 = 1201
-    // 必须严格递增（工程规划 §11.5 G7）：上一版 0.11.1 为 1101，本版 1201 > 1101，
+    //   0.13.0 -> 0 * 10000 + 13 * 100 + 0 = 1300
+    // 必须严格递增（工程规划 §11.5 G7）：上一版 0.12.1 为 1201，本版 1300 > 1201，
     // 满足递增且从此与 versionName 一一对应（骨架期 0.1.0 手写的 1000 为历史值，未上架）。
-    "versionCode": 1201,
-    "versionName": "0.12.1",
+    "versionCode": 1300,
+    "versionName": "0.13.0",
     "icon": "$media:app_icon",
     "label": "$string:app_name",
     "configuration": "$profile:configuration",

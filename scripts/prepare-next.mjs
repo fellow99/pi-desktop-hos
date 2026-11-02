@@ -236,7 +236,7 @@ function applyUpstreamPatches(piWebDir, tag) {
   return applied;
 }
 
-const PI_WEB_PATCH_TAG = 'v0.12.1';
+const PI_WEB_PATCH_TAG = 'v0.13.0';
 const patchesApplied = applyUpstreamPatches(piWebRoot, PI_WEB_PATCH_TAG);
 console.log(`${LOG} 本轮新应用补丁 ${patchesApplied} 条（目录 patches/${PI_WEB_PATCH_TAG}/）`);
 

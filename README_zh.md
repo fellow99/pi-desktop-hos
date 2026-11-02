@@ -13,8 +13,9 @@
 > 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），
 > 渲染层同源加载该服务端提供的 Pi Web UI，界面 100% 复用上游，不 fork 前端。
 
-**版本**：`0.13.0` / `versionCode` `1300`（**已构建、已真机签名部署验证**，见 [docs/真机验证记录.md](docs/真机验证记录.md)）
-· **上游基线**：`pi` **v1.4.0**（`Branch_v1.4.0`）+ `pi-web` **v0.13.0**（`Branch_v0.13.0`）
+**版本**：`0.14.1` / `versionCode` `1401`（本轮构建为 **unsigned HAP**，无真机验证 —— 本机无鸿蒙真机；
+0.13.0 轮的已签名真机验证见 [docs/真机验证记录.md](docs/真机验证记录.md)）
+· **上游基线**：`pi` **v1.4.0**（`Branch_v1.4.0`）+ `pi-web` **v0.14.1**（`Branch_v0.14.1`）
 · **运行时**：Electron **37.2.3**（Node **22.17.0** / ABI **v138**；HarmonyOS 侧经 `harmonypc-electron` 运行时）
 · **应用名 / 包名**：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
 
@@ -86,8 +87,8 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 - **命令执行与文件搜索由随包纯 JS 扩展同名顶替内建工具**（需求 102）：`bash` 走常驻
   `/system/bin/sh` + 随机哨兵行，结束判定**只看 stdout**、不等永不送达的进程事件；
   `find` / `grep` 走纯 JS 目录遍历，**零 `fd`/`rg`、零子进程**。对模型与 pi-web preset 完全透明。
-- **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0 沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
-  v0.13.0 另在 [`patches/v0.13.0/`](patches/v0.13.0/) 携带两条幂等可反向补丁 —— `0001-workspace-picker-roots`
+- **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0/v0.14.1 沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
+  v0.14.1 另在 [`patches/v0.14.1/`](patches/v0.14.1/) 携带两条幂等可反向补丁 —— `0001-workspace-picker-roots`
   （目录浏览的工作区根 Tab）与 `0002-session-export-in-process-fallback`（会话导走进程内回退）。见
   [patches/README.md](patches/README.md)。
 - **品牌化在上游产物副本上完成**（需求 103）：界面文案、Logo 与全部图标位改用父工程物料，
@@ -102,7 +103,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.4.0
-├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.13.0
+├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.14.1
 ├── harmonypc-electron/                 # [submodule] Electron-on-鸿蒙运行时（shell + manifest）
 ├── harmonypc-electron-versions/        # （普通目录，gitignore）v37 归档 + 原生模块材料
 ├── assets/                             # 父工程品牌物料（logo-1024-with-bg.png / logo.png / logo.svg）

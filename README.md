@@ -15,9 +15,10 @@
 > HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
 > The UI is reused 100% from upstream; the frontend is not forked.
 
-**Version**: `0.13.0` / `versionCode` `1300` (**built and verified via signed on-device deployment**,
-see [docs/真机验证记录.md](docs/真机验证记录.md))
-· **Upstream baseline**: `pi` **v1.4.0** (`Branch_v1.4.0`) + `pi-web` **v0.13.0** (`Branch_v0.13.0`)
+**Version**: `0.14.1` / `versionCode` `1401` (built this round as an unsigned HAP; on-device
+verification was skipped — no HarmonyOS device attached; the 0.13.0 round's signed on-device
+deployment is recorded in [docs/真机验证记录.md](docs/真机验证记录.md))
+· **Upstream baseline**: `pi` **v1.4.0** (`Branch_v1.4.0`) + `pi-web` **v0.14.1** (`Branch_v0.14.1`)
 · **Runtime**: Electron **37.2.3** (Node **22.17.0** / ABI **v138**; on the HarmonyOS side via the `harmonypc-electron` runtime)
 · **App name / bundle name**: `Pi Desktop` / `org.fellow99.pi.PiDesktop`
 
@@ -104,7 +105,7 @@ Key points:
   This is fully transparent to the model and to pi-web presets.
 - **v0.11.1 required zero patches; v0.12.1 adds two**: all 8 registered candidates are covered
   by existing upstream mechanisms or by the shell extensions; v0.12.1 additionally carries two
-  idempotent, reversible patches under [`patches/v0.13.0/`](patches/v0.13.0/) (the v0.13.0 directory carries the same two patches, re-verified on the v0.13.0 upstream; `patches/v0.12.1/` retained for history) — `0001-workspace-picker-roots`
+  idempotent, reversible patches under [`patches/v0.14.1/`](patches/v0.14.1/) (the v0.14.1 directory carries the same two patches, re-verified on the v0.14.1 upstream; `patches/v0.12.1/` and `patches/v0.13.0/` retained for history) — `0001-workspace-picker-roots`
   (workspace-root tabs in the directory browser) and `0002-session-export-in-process-fallback`
   (session export inside the in-process server). See [patches/README.md](patches/README.md).
 - **Branding is applied to the upstream artifact copy** (requirement 103): UI text, the Logo and
@@ -121,7 +122,7 @@ container repository):
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] upstream host + SDK, pinned to Branch_v1.2.0
-├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.13.0
+├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.14.1
 ├── harmonypc-electron/                 # [submodule] Electron-on-HarmonyOS runtime (shell + manifest)
 ├── harmonypc-electron-versions/        # (plain dir, gitignored) v37 archive + native module material
 ├── assets/                             # parent-project brand assets (logo-1024-with-bg.png / logo.png / logo.svg)
@@ -199,7 +200,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release-s
 
 > Branding only touches **this project's own artifacts** (`AppScope/`, overlay sources, the
 > `pi-dist/` copy); upstream `../pi`, `../pi-web` and `../harmonypc-electron` are **untouched**
-> (`patches/` is still empty). To regenerate brand assets alone (after changing `../assets/`):
+> (`patches/v0.14.1/` holds the two registered patches). To regenerate brand assets alone (after changing `../assets/`):
 > `node scripts/brand-assets.mjs`; missing assets cause a **hard failure**, never a silent
 > downgrade. See `specs/013-branding/` and `docs/media-placeholder-icons.md`.
 

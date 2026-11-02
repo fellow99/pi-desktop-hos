@@ -104,7 +104,7 @@ Key points:
   This is fully transparent to the model and to pi-web presets.
 - **v0.11.1 required zero patches; v0.12.1 adds two**: all 8 registered candidates are covered
   by existing upstream mechanisms or by the shell extensions; v0.12.1 additionally carries two
-  idempotent, reversible patches under [`patches/v0.12.1/`](patches/v0.12.1/) — `0001-workspace-picker-roots`
+  idempotent, reversible patches under [`patches/v0.13.0/`](patches/v0.13.0/) (the v0.13.0 directory carries the same two patches, re-verified on the v0.13.0 upstream; `patches/v0.12.1/` retained for history) — `0001-workspace-picker-roots`
   (workspace-root tabs in the directory browser) and `0002-session-export-in-process-fallback`
   (session export inside the in-process server). See [patches/README.md](patches/README.md).
 - **Branding is applied to the upstream artifact copy** (requirement 103): UI text, the Logo and
@@ -121,7 +121,7 @@ container repository):
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] upstream host + SDK, pinned to Branch_v1.2.0
-├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.12.1
+├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.13.0
 ├── harmonypc-electron/                 # [submodule] Electron-on-HarmonyOS runtime (shell + manifest)
 ├── harmonypc-electron-versions/        # (plain dir, gitignored) v37 archive + native module material
 ├── assets/                             # parent-project brand assets (logo-1024-with-bg.png / logo.png / logo.svg)

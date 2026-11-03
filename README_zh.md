@@ -13,9 +13,10 @@
 > 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），
 > 渲染层同源加载该服务端提供的 Pi Web UI，界面 100% 复用上游，不 fork 前端。
 
-**版本**：`0.14.1` / `versionCode` `1401`（本轮构建为 **unsigned HAP**，无真机验证 —— 本机无鸿蒙真机；
-0.13.0 轮的已签名真机验证见 [docs/真机验证记录.md](docs/真机验证记录.md)）
-· **上游基线**：`pi` **v1.4.0**（`Branch_v1.4.0`）+ `pi-web` **v0.14.1**（`Branch_v0.14.1`）
+**版本**：`0.14.2` / `versionCode` `1402`（本轮构建为**签名 HAP**，已部署真机 `3QC0226526001227` 并验
+证启动/进程/渲染/版本徽标；完整交互式对话测试受无头自动化工具限制，见测试报告；0.13.0 轮的
+更深入已签名真机验证见 [docs/真机验证记录.md](docs/真机验证记录.md)）
+· **上游基线**：`pi` **v1.5.0**（`Branch_v1.5.0`）+ `pi-web` **v0.14.2**（`Branch_v0.14.2`）
 · **运行时**：Electron **37.2.3**（Node **22.17.0** / ABI **v138**；HarmonyOS 侧经 `harmonypc-electron` 运行时）
 · **应用名 / 包名**：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
 

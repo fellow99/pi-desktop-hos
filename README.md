@@ -15,10 +15,12 @@
 > HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
 > The UI is reused 100% from upstream; the frontend is not forked.
 
-**Version**: `0.14.1` / `versionCode` `1401` (built this round as an unsigned HAP; on-device
-verification was skipped — no HarmonyOS device attached; the 0.13.0 round's signed on-device
-deployment is recorded in [docs/真机验证记录.md](docs/真机验证记录.md))
-· **Upstream baseline**: `pi` **v1.4.0** (`Branch_v1.4.0`) + `pi-web` **v0.14.1** (`Branch_v0.14.1`)
+**Version**: `0.14.2` / `versionCode` `1402` (built this round as a **signed HAP**; on-device
+boot / process / render / version-badge verified on a real HarmonyOS device — `3QC0226526001227`;
+full interactive chat testing is limited by the headless automation tooling, recorded in the
+test report; the 0.13.0 round's deeper signed on-device deployment is recorded in
+docs/真机验证记录.md](docs/真机验证记录.md))
+· **Upstream baseline**: `pi` **v1.5.0** (`Branch_v1.5.0`) + `pi-web` **v0.14.2** (`Branch_v0.14.2`)
 · **Runtime**: Electron **37.2.3** (Node **22.17.0** / ABI **v138**; on the HarmonyOS side via the `harmonypc-electron` runtime)
 · **App name / bundle name**: `Pi Desktop` / `org.fellow99.pi.PiDesktop`
 

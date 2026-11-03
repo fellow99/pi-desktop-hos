@@ -1,6 +1,6 @@
 # ACL 申请清单（Pi Desktop / `org.fellow99.pi.PiDesktop`）
 
-> **版本**：v1 ｜ **日期**：2026-10-14 ｜ **适用工程**：`pi-desktop-hos`
+> **版本**：v1 ｜ **日期**：2026-10-14（**2026-11-03 复核**） ｜ **适用工程**：`pi-desktop-hos`
 > **用途**：**申请操作手册**。列出本工程必须申请的**受限权限（ACL）**、**开放权限（免 ACL）**、**明确不申请**的项与理由，以及 AGC 提交口径与上架前置复核。§3 的「申请原因 / 使用场景」为**可直接照填 AGC 表单**的文本。
 > **基准**：本清单的**权限声明面与 `dsh-desktop-hos` 逐项对标** —— `web_engine/src/main/module.json5` 的 23 项 `requestPermissions`（含顺序）+ 2 项 `definePermissions`、`electron/src/main/module.json5` 的 `KEEP_BACKGROUND_RUNNING` + `backgroundModes: ["taskKeeping"]`、以及 8 条 `reason` 文案（3 套 locale）。判定口径沿用 `dsh-desktop-hos/docs/ACL申请清单-v2.md` §2（「需 ACL」判定规则只在该文件 §2；`-v1.md` §2 是申请原因文案）。
 > **上游基线**：`pi` v1.1.0 · `pi-web` v0.11.1；运行期 Electron 37.2.3（Node 22.17.0 / Chromium / ABI v138）。
@@ -27,6 +27,21 @@
 > 三项 ACL 可**一次提交**（单次上限 30 项），审核结果一起返回；**上一批未审完不能提交新一批**。
 
 **一句话**：本工程要做的是 **① 按本包名提交 3 项 ACL 的工单**（`kernel.ALLOW_WRITABLE_CODE_MEMORY` 是**关键路径**——未获批则应用的 JS 引擎 JIT 不可用，属**应用级失败**而非功能降级，应尽早在 AGC 开工单；`READ_PASTEBOARD` / `READ_WRITE_DESKTOP_DIRECTORY` 同批提交），**② 保持声明面与 `dsh-desktop-hos` 一致**（✅ 已完成，见 §7），其余一律**不申请**。
+
+### ⚠ 2026-11-03 复核（DevEco 生成签名报 `check aclPermissionList failed … not in support scope` 的对策）
+
+- 声明面：本工程 4 个模块（`web_engine` / `runtime-overlays/*` / `electron` 主模块）与 **`dsh-desktop-hos` 逐项一致**（已逐模块 diff 核对，差异仅注释），**无需改声明面**。
+- 真正区别：`dsh-desktop-hos` 的 `build-profile.json5` **已提交带 ACL 的调试 Profile**，其 `.p7b`（`openssl` 实测）`allowed-acls` = **6 项**：
+  ```
+  ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY
+  ohos.permission.READ_WRITE_DESKTOP_DIRECTORY
+  ohos.permission.READ_WRITE_DOCUMENTS_DIRECTORY
+  ohos.permission.READ_PASTEBOARD
+  ohos.permission.FILE_ACCESS_PERSIST
+  ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY
+  ```
+  而本工程 `build-profile.json5` 为 `signingConfigs: []`（无签名材料）→ DevEco 自动签名生成的 debug Profile **不含这些 ACL** → 报错。
+- **对策（必须在 DevEco/AGC 侧完成，仓库改不了 Profile）**：给`org.fellow99.pi.PiDesktop` 生成调试 Profile 时，让 `allowed-acls` 覆盖上述 **6 项**（A0/A1/A2 三项 `system_basic` 是必需；另三项 normal 目录权限随 Profile 一并带，行为与 dsh-hos 一致）。自动签名若不给 ACL，可走 AGC 申请（见 §1 路径）或手工把这三项 `system_basic` 加进 Profile 的 ACL。
 
 ---
 

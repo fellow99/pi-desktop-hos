@@ -1,6 +1,6 @@
 # patches/ — 上游补丁集
 
-> **现状（2026-11-04）**：**2 条**补丁。`patches/v0.12.1/` 按 v0.12.1 生成；`v0.13.0`、**`v0.14.2`** 为同内容副本；`v0.14.1` 上游 `DirectoryPicker.tsx` 有实质改动（#1462 backdrop 按下追踪）致 `0001-workspace-picker-roots` 上下文漂移，已在 `patches/v0.14.1/` 重出（**保留上游 #1462 修复语义**，在其上重放工作区根 Tab / 面包屑 / 权限归因逻辑），`0002-session-export` 为同内容副本；v0.14.2 补丁领域文件（terminal / cwd-browse / directory-browser / agent-new / session-export / DirectoryPicker）**均无变更**，故 `patches/v0.14.1/` 两条直接拷贝为 `patches/v0.14.2/`（逐字节相同）；均已在 pristine v0.14.2 上按序幂等应用 + 反向往返回 pristine；旧目录保留可追溯 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
+> **现状（2026-11-05）**：**2 条**补丁。`patches/v0.12.1/` 按 v0.12.1 生成；`v0.13.0`、`v0.14.2`、**`v0.15.0`** 为同内容副本；`v0.14.1` 上游 `DirectoryPicker.tsx` 有实质改动（#1462 backdrop 按下追踪）致 `0001-workspace-picker-roots` 上下文漂移，已在 `patches/v0.14.1/` 重出（**保留上游 #1462 修复语义**，在其上重放工作区根 Tab / 面包屑 / 权限归因逻辑），`0002-session-export` 为同内容副本；v0.15.0 补丁领域唯一交集是 session-export（上游 `1fbf6c6` 删除被 pi 1.5.0 迭代模板废弃的 `patchExportHtml()`），与本工程两条补丁的 `exportSession()` 守卫 / `webpackIgnore` 改动区域**不重叠**，故 `patches/v0.14.2/` 两条直接拷贝为 `patches/v0.15.0/`（逐字节相同），已在 pristine v0.15.0 上按序幂等应用验证（累计 dry-run 14/14 全绿，含 ark/android 集合）；旧目录保留可追溯 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
 > 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
 ## 0. 已登记补丁

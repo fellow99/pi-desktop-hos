@@ -23,7 +23,7 @@ const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const piWebRoot = resolve(projectRoot, '../pi-web');
 const piRoot = resolve(projectRoot, '../pi');
 
-const EXPECTED_PI_WEB_VERSION = '0.14.2';
+const EXPECTED_PI_WEB_VERSION = '0.15.0';
 const LOG = '[prepare-next]';
 
 const KEEP_PATH_MARKERS = ['linux-arm64', 'arm64', 'ohos'];
@@ -236,7 +236,7 @@ function applyUpstreamPatches(piWebDir, tag) {
   return applied;
 }
 
-const PI_WEB_PATCH_TAG = 'v0.14.2';
+const PI_WEB_PATCH_TAG = 'v0.15.0';
 const patchesApplied = applyUpstreamPatches(piWebRoot, PI_WEB_PATCH_TAG);
 console.log(`${LOG} 本轮新应用补丁 ${patchesApplied} 条（目录 patches/${PI_WEB_PATCH_TAG}/）`);
 

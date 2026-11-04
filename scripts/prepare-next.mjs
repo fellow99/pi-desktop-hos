@@ -5,7 +5,7 @@
  * 流程：前置检查 →（node_modules 缺失时）npm ci → next build --webpack → 裁剪平台特定原生件
  *      → 轮换预览密钥 → 断言 .next/BUILD_ID。
  *
- * 前置：同级目录存在 ../pi-web（v0.14.2）与 ../pi（pi v1.5.0，npm 从它解析 @earendil-works/*）。
+ * 前置：同级目录存在 ../pi-web（v0.15.0）与 ../pi（pi v1.5.0，npm 从它解析 @earendil-works/*）。
  *
  * 为什么必须裁剪：`.next` 必须在能完整安装依赖的宿主机上构建，产物里因此混入宿主平台的原生件；
  * 它们在 HarmonyOS aarch64 上永远加载不了，白占 HAP 体积（且 §8.2 已决定终端面板 v1 降级）。
@@ -100,10 +100,10 @@ function* walkFiles(dir) {
 // ── 0. 前置检查 ───────────────────────────────────────────────────────
 banner('0. 前置检查');
 if (!existsSync(piWebRoot)) {
-  fail(`pi-web 未找到：${piWebRoot}（期望与 pi-desktop-hos 同级；上游基线 pi-web v0.14.2）`);
+  fail(`pi-web 未找到：${piWebRoot}（期望与 pi-desktop-hos 同级；上游基线 pi-web v0.15.0）`);
 }
 if (!existsSync(piRoot)) {
-  fail(`pi 未找到：${piRoot}（期望与 pi-desktop-hos 同级；上游基线 pi v1.2.0，pi-web 的 @earendil-works/* 由它解析）`);
+  fail(`pi 未找到：${piRoot}（期望与 pi-desktop-hos 同级；上游基线 pi v1.5.0，pi-web 的 @earendil-works/* 由它解析）`);
 }
 const piWebPkgPath = join(piWebRoot, 'package.json');
 if (!existsSync(piWebPkgPath)) fail(`pi-web/package.json 不存在：${piWebPkgPath}`);

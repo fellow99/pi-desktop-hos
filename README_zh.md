@@ -88,8 +88,8 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 - **命令执行与文件搜索由随包纯 JS 扩展同名顶替内建工具**（需求 102）：`bash` 走常驻
   `/system/bin/sh` + 随机哨兵行，结束判定**只看 stdout**、不等永不送达的进程事件；
   `find` / `grep` 走纯 JS 目录遍历，**零 `fd`/`rg`、零子进程**。对模型与 pi-web preset 完全透明。
-- **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0/v0.14.1 沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
-  v0.14.1 另在 [`patches/v0.14.1/`](patches/v0.14.1/) 携带两条幂等可反向补丁 —— `0001-workspace-picker-roots`
+- **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0 起各版沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
+  当前 [`patches/v0.15.0/`](patches/v0.15.0/) 携带两条幂等可反向补丁（`v0.13.0`/`v0.14.1`/`v0.14.2`/`v0.15.0` 同内容）—— `0001-workspace-picker-roots`
   （目录浏览的工作区根 Tab）与 `0002-session-export-in-process-fallback`（会话导走进程内回退）。见
   [patches/README.md](patches/README.md)。
 - **品牌化在上游产物副本上完成**（需求 103）：界面文案、Logo 与全部图标位改用父工程物料，
@@ -104,7 +104,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.4.0
-├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.14.1
+├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.15.0
 ├── harmonypc-electron/                 # [submodule] Electron-on-鸿蒙运行时（shell + manifest）
 ├── harmonypc-electron-versions/        # （普通目录，gitignore）v37 归档 + 原生模块材料
 ├── assets/                             # 父工程品牌物料（logo-1024-with-bg.png / logo.png / logo.svg）

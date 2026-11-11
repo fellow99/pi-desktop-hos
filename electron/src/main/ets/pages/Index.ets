@@ -60,6 +60,12 @@ struct Index {
           if (event.type == KeyType.Down && event.keyCode == KeyCode.KEYCODE_ESCAPE) {
             event.stopPropagation();
           }
+          // 113-system-back：主界面由本地服务提供，系统返回键不应产生「返回/退出」语义 ——
+          // stopPropagation 防系统默认导航/退出；渲染进程 BrowserBack 路径由 Electron 主进程
+          // （installWindowShortcuts）另行派发 `pi-back`。双路径，⬜ 待验证（无真机）。
+          if (event.type == KeyType.Down && event.keyCode == KeyCode.KEYCODE_BACK) {
+            event.stopPropagation();
+          }
         }
       })
       .backgroundColor(this.backgroundColor_)

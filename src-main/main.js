@@ -1027,6 +1027,14 @@ function installWindowShortcuts(win) {
       event.preventDefault();
       goBack();
     }
+    // 113-system-back：系统返回键（Chromium 常映射为专用 BrowserBack 键位）→ 派发 `pi-back` 事件，
+    // 由 pi-web（AppShell 补丁）按优先级关闭设置页/收回移动端抽屉；首页/会话页/无浮层时页面 no-op，
+    // 主进程不退出/不导航。⚠️ 绝不映射 Backspace（文本删除键），避免破坏输入；不 preventDefault
+    // （ArkUI 层已对 KEYCODE_BACK stopPropagation，双路径见 specs/113-system-back）。⬜ 待验证（无真机）。
+    if (input.code === 'BrowserBack') {
+      win.webContents.executeJavaScript("window.dispatchEvent(new Event('pi-back'))", true).catch(() => {});
+      return;
+    }
   });
 }
 

@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "org.fellow99.pi.PiDesktop",
+    "bundleName": "top.fellow99.pi.PiDesktopHos",
     "vendor": "fellow99",
     // versionCode 编码规则（见 specs/011-version-0.12.1/plan.md D1）：
     //   versionCode = major * 10000 + minor * 100 + patch

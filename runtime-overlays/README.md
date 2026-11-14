@@ -19,7 +19,7 @@
      见 [§2](#2-新增文件上游不存在) 的说明），回盖后由阶段 4 再改写；
    - `OVERLAY_ADD_FILES`：上游**不存在**、由本工程新增的文件（5 个）。
 4. **bundleName 字面量改写**：把上游通用 bundleName `com.huawei.ohos_electron` 改写为本应用
-   bundleName（`AppScope/app.json5` 的 `bundleName`，即 `org.fellow99.pi.PiDesktop`）。
+   bundleName（`AppScope/app.json5` 的 `bundleName`，即 `top.fellow99.pi.PiDesktopHos`）。
 5. **守卫**：阶段 7 逐条校验「overlay 已命中（源/目标 md5 一致）」「剪裁文件确实不存在」
    「前置 overlay 源保留通用字面量、目标已无通用字面量且含 App bundleName」。
 
@@ -41,7 +41,7 @@
 | `electron/src/main/resources/en_US/element/string.json` | 同上（en_US） | 否 | 是（2 行） |
 | `electron/src/main/resources/zh_CN/element/string.json` | 同上（zh_CN，`确认`/`取消`/`应用状态栏`/`打开新窗口` 保留中文） | 否 | 是（2 行） |
 | `electron/src/main/resources/base/profile/main_pages.json` | 登记 `pages/ExternalWeb` | 否 | 是（3 行） |
-| `electron/src/main/resources/base/profile/shortcuts_config.json` | 快捷方式 `bundleName` = `org.fellow99.pi.PiDesktop`；`icon` = `$media:app_icon` | 否 | 是（3 行） |
+| `electron/src/main/resources/base/profile/shortcuts_config.json` | 快捷方式 `bundleName` = `top.fellow99.pi.PiDesktopHos`；`icon` = `$media:app_icon` | 否 | 是（3 行） |
 | `web_engine/src/main/module.json5` | 权限表定制：删除相机/麦克风/定位（含后台）/蓝牙/分布式数据同步/Web Native Messaging 共 8 条；新增 3 条 App 级权限（`INHERIT_PARENT_PERMISSION`、`kernel.IGNORE_LIBRARY_VALIDATION`、`kernel.EXEMPT_ANONYMOUS_EXECUTABLE_MEMORY`）；`usedScene` 由上游示例写法 `FormAbility`/`always` 改为 `EntryAbility`/`inuse`；`definePermissions` 原样保留；文件内已标注「App 级新增」与「上游原有」 | 否 | 是（108 行，另加 18 行本工程注释） |
 | `web_engine/src/main/resources/base/element/string.json` | 权限 reason 文案：删除 `camera`/`microphone`/`location`/`access_bluetooth` 条目，改写 `access_pasteboard`/`*_dir`/`screen_capture` 文案，新增 `inherit_parent_permission`/`ignore_library_validation`/`exempt_anonymous_executable_memory` | 否 | 是（38 行） |
 | `web_engine/src/main/resources/en_US/element/string.json` | 同上（en_US） | 否 | 是（38 行） |

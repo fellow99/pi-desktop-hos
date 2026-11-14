@@ -60,7 +60,7 @@ const sdkRoot = process.env.DEVECO_SDK_HOME;
 const manifestPath = resolve(runtimeRoot, 'runtime-manifest.json');
 
 /** App 身份事实源 —— 与 AppScope/app.json5 保持单一来源 */
-const EXPECTED_BUNDLE = 'org.fellow99.pi.PiDesktop';
+const EXPECTED_BUNDLE = 'top.fellow99.pi.PiDesktopHos';
 
 const EXCLUDE_TOP = new Set(['build', 'oh_modules', 'node_modules', '.git', '.hvigor', '.idea', '.codegraph']);
 

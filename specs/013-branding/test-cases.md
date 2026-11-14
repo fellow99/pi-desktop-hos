@@ -30,7 +30,7 @@
 | TC-24 | **包内图标 = 生成物** | 解包 HAP 读 IHDR + md5 | ✅ **5 个**逐字节一致：`icon.png` / `product_logo_32.png` / `startIcon.png`（1024²/`colorType=2` 无 alpha）+ `window_icon.png` / `electron_white.png`（200²/alpha）；`app_icon.png` 例外见 TC-26 | `T14-hap-icons.txt`、`T32-hap-icons.txt` |
 | TC-25 | 旧占位图已消失 | 比 md5（旧值 `09b57e9f…` / `8163783d…`） | ✅ 已彻底替换 | 同上 |
 | TC-26 | **`app_icon.png` 与源文件不同（已知事实）** | 解包 HAP | ⚠️ 包内为 **512×512 / `colorType=6`** —— 鸿蒙资源编译器重编码（`resConfig.json#iconCheck`）；**源资产**仍是 1024²/无 alpha（`fe006dfd…`）。验收以源资产为准（AC-05 已按此改写） | `T32-hap-icons.txt` + `docs/media-placeholder-icons.md` |
-| TC-27 | 版本号与 bundleName 未变（AC-10） | `pack.info`、`AppScope/app.json5` | ✅ `0.11.1 / 1101`、`org.fellow99.pi.PiDesktop` | 同上 |
+| TC-27 | 版本号不变且 bundleName 变更为 `top.fellow99.pi.PiDesktopHos`（R2，AC-10） | `pack.info`、`AppScope/app.json5` | ✅ `0.11.1 / 1101`、bundleName `top.fellow99.pi.PiDesktopHos` | 同上 |
 
 ## C. 真机端到端（AC-01…04、AC-09）
 

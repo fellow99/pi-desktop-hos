@@ -12,7 +12,7 @@
 #   - release 签名的包【无法】通过 hdc 侧载，安装会失败并报
 #       signature verification failed due to not trusted app source
 #     因此真机调试 / 回归测试请改用 build-debug.ps1（debug 材料 + debug 签名）。
-#   - 包名为 org.fellow99.pi.PiDesktop（非上游共享签名主体的包名）：受限权限 ACL 必须按本包名
+#   - 包名为 top.fellow99.pi.PiDesktopHos（非上游共享签名主体的包名）：受限权限 ACL 必须按本包名
 #     重新申请，且证书不能用 com.huawei.ohos_electron 的共享签名（见设计文档 §11.4）。
 #
 # 产物：

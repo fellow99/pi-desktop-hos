@@ -22,7 +22,7 @@ const TAG: string = 'ElectronApp';
 @injectable()
 export class ElectronAppAdapter extends BaseAdapter {
   private abilityManager: AbilityManager;
-  private bundleName: string = 'org.fellow99.pi.PiDesktop';
+  private bundleName: string = 'top.fellow99.pi.PiDesktopHos';
   private bundleFlags = bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
                         bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_METADATA;
   private ctxAdapter: ContextAdapter;

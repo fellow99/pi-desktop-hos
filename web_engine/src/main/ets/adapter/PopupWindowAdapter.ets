@@ -23,7 +23,7 @@ const TAG: string = 'PopupWindow';
 export class PopupWindowAdapter extends BaseAdapter {
   private abilityManager: AbilityManager;
   private popupWindowManager: PopupWindowManager;
-  private bundleName: string = 'org.fellow99.pi.PiDesktop';
+  private bundleName: string = 'top.fellow99.pi.PiDesktopHos';
   private bundleFlags = bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION |
                         bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_METADATA;
 

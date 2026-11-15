@@ -1,0 +1,28 @@
+diff --git a/app/api/sessions/[id]/export/route.ts b/app/api/sessions/[id]/export/route.ts
+index bda67e9..ad533e2 100644
+--- a/app/api/sessions/[id]/export/route.ts
++++ b/app/api/sessions/[id]/export/route.ts
+@@ -216,7 +216,10 @@ function patchExportHtml(html: string): string {
+ 
+ async function exportSession(filePath: string, outputPath: string): Promise<void> {
+   const cliPath = await getPiCliPath();
+-  if (cliPath) {
++  // 只有「当前进程就是可用的运行时二进制」时才 spawn CLI：桌面端 process.execPath 是
++  // node/electron 本体；鸿蒙端它指向应用包内并不存在的路径、且 spawn 不可用 —— 此时必须
++  // 回退到下面的进程内 exportFromFile，否则整条导出直接 500（真机实测 ENOENT）。
++  if (cliPath && existsSync(process.execPath)) {
+     await execFileAsync(process.execPath, [cliPath, "--export", filePath, outputPath], {
+       cwd: process.cwd(),
+       timeout: 30_000,
+@@ -234,7 +237,10 @@ async function exportSession(filePath: string, outputPath: string): Promise<void
+   if (!packageDir) throw new Error("pi CLI not found");
+ 
+   const exporterUrl = pathToFileURL(join(packageDir, "dist", "core", "export-html", "index.js")).href;
+-  const { exportFromFile } = (await import(exporterUrl)) as ExportHtmlModule;
++  // `webpackIgnore` 不可省：这个 import 的实参是运行时算出来的 file:// URL，打包器默认会把它
++  // 改写成自己的模块查找（实测产物成了 c(79405)(f) → "Cannot find module 'file:///…'"），
++  // 只有保留成原生动态 import，才能加载设备上 pi 载荷里的那个 ESM 模块。
++  const { exportFromFile } = (await import(/* webpackIgnore: true */ exporterUrl)) as ExportHtmlModule;
+   await exportFromFile(filePath, outputPath);
+ }
+ 

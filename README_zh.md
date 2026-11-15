@@ -13,10 +13,10 @@
 > 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），
 > 渲染层同源加载该服务端提供的 Pi Web UI，界面 100% 复用上游，不 fork 前端。
 
-**版本**：`0.15.0` / `versionCode` `1500`（本轮构建为**签名 HAP**，已部署真机 `3QC0226526001227` 并验
+**版本**：`0.17.0` / `versionCode` `1700`（本轮构建 HAP，已完成构建；真机复验待后续 —— 0.15.0 轮的签名 HAP 已部署真机 `3QC0226526001227` 并验
 证启动/进程/渲染/版本徽标；完整交互式对话测试受无头自动化工具限制，见测试报告；0.13.0 轮的
 更深入已签名真机验证见 [docs/真机验证记录.md](docs/真机验证记录.md)）
-· **上游基线**：`pi` **v1.5.0**（`Branch_v1.5.0`）+ `pi-web` **v0.15.0**（`Branch_v0.15.0`）
+· **上游基线**：`pi` **v1.5.2**（`Branch_v1.5.2`）+ `pi-web` **v0.17.0**（`Branch_v0.17.0`）
 · **运行时**：Electron **37.2.3**（Node **22.17.0** / ABI **v138**；HarmonyOS 侧经 `harmonypc-electron` 运行时）
 · **应用名 / 包名**：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
 
@@ -89,7 +89,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
   `/system/bin/sh` + 随机哨兵行，结束判定**只看 stdout**、不等永不送达的进程事件；
   `find` / `grep` 走纯 JS 目录遍历，**零 `fd`/`rg`、零子进程**。对模型与 pi-web preset 完全透明。
 - **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0 起各版沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
-  当前 [`patches/v0.15.0/`](patches/v0.15.0/) 携带两条幂等可反向补丁（`v0.13.0`/`v0.14.1`/`v0.14.2`/`v0.15.0` 同内容）—— `0001-workspace-picker-roots`
+  当前 [`patches/v0.17.0/`](patches/v0.17.0/) 携带三条幂等可反向补丁（`v0.15.0` 同内容）—— `0001-workspace-picker-roots`
   （目录浏览的工作区根 Tab）与 `0002-session-export-in-process-fallback`（会话导走进程内回退）。见
   [patches/README.md](patches/README.md)。
 - **品牌化在上游产物副本上完成**（需求 103）：界面文案、Logo 与全部图标位改用父工程物料，
@@ -104,7 +104,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.4.0
-├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.15.0
+├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.17.0
 ├── harmonypc-electron/                 # [submodule] Electron-on-鸿蒙运行时（shell + manifest）
 ├── harmonypc-electron-versions/        # （普通目录，gitignore）v37 归档 + 原生模块材料
 ├── assets/                             # 父工程品牌物料（logo-1024-with-bg.png / logo.png / logo.svg）

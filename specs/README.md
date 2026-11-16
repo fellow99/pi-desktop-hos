@@ -1,7 +1,7 @@
 # 规格文档索引 —— `pi-desktop-hos`
 
 **项目名称：** `pi-desktop-hos`（Pi Desktop · Electron on HarmonyOS 版 / **Electron on HarmonyOS Edition**）
-**应用名 / 包名：** Pi Desktop / `org.fellow99.pi.PiDesktop`
+**应用名 / 包名：** Pi Desktop / `top.fellow99.pi.PiDesktopHos`
 **版本：** `0.12.1` / `versionCode` `1201`
 **技术栈：** Electron-on-鸿蒙（Electron **37.2.3** / Node **22.17.0** / ABI **v138**）+ ArkTS + HarmonyOS；
 上游 **`pi` v1.2.0** + **`pi-web` v0.12.1**

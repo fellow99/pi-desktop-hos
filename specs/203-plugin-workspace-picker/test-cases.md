@@ -9,7 +9,7 @@
 | 项 | 值 |
 |---|---|
 | 设备 | 真机 `3QC0226526001227`（2in1 / HUAWEI MateBook Pro / API 24） |
-| 应用 | `org.fellow99.pi.PiDesktop`，debug 签名 HAP（`electron-default-signed.hap`） |
+| 应用 | `top.fellow99.pi.PiDesktopHos`，debug 签名 HAP（`electron-default-signed.hap`） |
 | 调试通道 | `hdc fport tcp:19229 tcp:9229` → CDP；工具 `$PI_SCRATCH_DIR/cdp.mjs`（不入库） |
 | 脚本工具 | `hdc`（`/d/oh-workspace/command-line-tools/sdk/default/openharmony/toolchains`） |
 | 关键路径 | 沙箱 `<userData>/workspace` = `/data/storage/el2/base/files/workspace`；`/storage/Users/currentUser/{Desktop,Documents,Download}` |

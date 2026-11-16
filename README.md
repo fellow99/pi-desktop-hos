@@ -15,14 +15,14 @@
 > HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
 > The UI is reused 100% from upstream; the frontend is not forked.
 
-**Version**: `0.17.0` / `versionCode` `1700` (HAP built this round; on-device
-re-verification pending — the 0.15.0 round's signed HAP was verified on a real HarmonyOS device — `3QC0226526001227`;
-full interactive chat testing is limited by the headless automation tooling, recorded in the
-test report; the 0.13.0 round's deeper signed on-device deployment is recorded in
+**Version**: `0.17.0` / `versionCode` `1700` (**verified on a real HarmonyOS device this round** — new bundle name
+`top.fellow99.pi.PiDesktopHos` first on-device round: boot / badge `web 0.17.0 · pi 1.5.2` / DeepSeek key / sandbox
+workspace / text chat / image-attachment pipeline byte-verified / git extension local lifecycle / in-process session
+export — see docs/真机验证记录.md round 9; the 0.15.0 and 0.13.0 rounds' device deployments are recorded in
 docs/真机验证记录.md](docs/真机验证记录.md))
 · **Upstream baseline**: `pi` **v1.5.2** (`Branch_v1.5.2`) + `pi-web` **v0.17.0** (`Branch_v0.17.0`)
 · **Runtime**: Electron **37.2.3** (Node **22.17.0** / ABI **v138**; on the HarmonyOS side via the `harmonypc-electron` runtime)
-· **App name / bundle name**: `Pi Desktop` / `org.fellow99.pi.PiDesktop`
+· **App name / bundle name**: `Pi Desktop` / `top.fellow99.pi.PiDesktopHos`
 
 The full engineering plan and delivery record live in **[docs/工程规划.md](docs/工程规划.md)**;
 the **authoritative** document for device-side capability conclusions is
@@ -212,9 +212,9 @@ Host-side regression test (runs with no device; covers the pure-JS search extens
 ### Install and launch
 
 ```bash
-hdc uninstall org.fellow99.pi.PiDesktop
+hdc uninstall top.fellow99.pi.PiDesktopHos
 hdc app install -r electron/build/default/outputs/default/electron-default-signed.hap
-hdc shell aa start -a EntryAbility -b org.fellow99.pi.PiDesktop
+hdc shell aa start -a EntryAbility -b top.fellow99.pi.PiDesktopHos
 ```
 
 > ⚠️ **Release-signed packages cannot be sideloaded** (they fail with

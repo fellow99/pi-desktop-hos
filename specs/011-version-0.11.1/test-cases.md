@@ -26,7 +26,7 @@
 | TC-13 | ②′ 门禁 0 FAIL | `smoke-node22.mjs` | PASS≥9，FAIL=0 | ✅ 9 PASS / 1 SKIP / 0 FAIL | `T05-3-smoke.log` |
 | TC-14 | ③ `collect-pi` 产出 tar + marker | `collect-pi.mjs` | tar + SHA-256 marker | ✅ 115.9 MB，27279 文件 | `T05-4-collect-pi.log` |
 | TC-15 | ④ `collect-app` 投放 resfile | `collect-app.mjs` | 9 文件 / 116 MB | ✅ | `T05-5-collect-app.log` |
-| TC-16 | ⑤ 签名构建 + **独立复验** | `build-debug.ps1`，再用 `hap-sign-tool verify-app` 复验 | `BUILD SUCCESSFUL` + 脚本签名断言 + `Digest verify result: true` / `verify-app success` | ✅ `BUILD SUCCESSFUL in 1 min 20 s`；`SHA384withECDSA`；Profile `bundle-name=org.fellow99.pi.PiDesktop`、`type=debug`、含 `kernel.ALLOW_WRITABLE_CODE_MEMORY` | `T05-6-build-debug.log`、`T08-signature-verify.txt` |
+| TC-16 | ⑤ 签名构建 + **独立复验** | `build-debug.ps1`，再用 `hap-sign-tool verify-app` 复验 | `BUILD SUCCESSFUL` + 脚本签名断言 + `Digest verify result: true` / `verify-app success` | ✅ `BUILD SUCCESSFUL in 1 min 20 s`；`SHA384withECDSA`；Profile `bundle-name=top.fellow99.pi.PiDesktopHos`、`type=debug`、含 `kernel.ALLOW_WRITABLE_CODE_MEMORY` | `T05-6-build-debug.log`、`T08-signature-verify.txt` |
 
 ## B. 真机部署与启动
 

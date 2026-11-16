@@ -10,7 +10,7 @@
 
 | 实体 | 说明 | 关键属性 / 落点 |
 |---|---|---|
-| 应用身份 | 包名/显示名/版本 | `AppScope/app.json5`：`org.fellow99.pi.PiDesktop`、`0.12.1`、`1201` |
+| 应用身份 | 包名/显示名/版本 | `AppScope/app.json5`：`top.fellow99.pi.PiDesktopHos`、`0.12.1`、`1201` |
 | 宿主环境 | 进程环境 | `HOME`、`PI_CODING_AGENT_DIR`、`TMPDIR`、`PI_OFFLINE`、`PI_WEB_*`、`NO_PROXY` |
 | 鉴权凭据 | 随机密码 / 会话 token | 启动时生成；不入日志；Cookie 注入 |
 | 载荷 | pi-dist | `pi-dist.tar.gz` + `pi-dist.version`（SHA-256） |

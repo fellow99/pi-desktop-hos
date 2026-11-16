@@ -12,8 +12,8 @@
 打包为**可签名、可分发的 HAP**。它在 Electron 主进程内承载 `pi-web` 的 Next 服务器（含 agent 与 `/api/*`），
 渲染层同源加载该服务的 UI。**UI 100% 复用上游，补丁 2 条**，不 fork 前端。
 
-- 应用名 / 包名：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
-- 版本：`0.17.0` / `versionCode` `1700`（本轮 HAP；真机复验待后续）
+- 应用名 / 包名：`Pi Desktop` / `top.fellow99.pi.PiDesktopHos`
+- 版本：`0.17.0` / `versionCode` `1700`（**0.17.0 真机已验**：新包名首装轮，徽标/对话/图片管线/Git 扩展/会话导出全过，见 `docs/真机验证记录.md` 轮次 9）
 - 上游基线：`pi` **v1.5.2** + `pi-web` **v0.17.0**
 - 与 `pi-desktop-ark` 的关系：同为鸿蒙版别；本版**保留 Electron 运行时**（桌面 API 面更全）；ark 版是纯 ArkWeb + 进程内 Node。
 

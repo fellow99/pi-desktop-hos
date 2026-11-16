@@ -108,7 +108,7 @@ README 流水线小节加「阶段 ⓪/③.5 品牌物料」；工程规划附�
 ## 3. 不做的设计（YAGNI）
 
 - **不做** i18n 文案本地化改写（只换品牌名本身）；**不做** 上游源码/patch 改动；
-- **不做** 版本号改名；bundleName 按 R2 决策由 `org.fellow99.pi.PiDesktop` 改为 `top.fellow99.pi.PiDesktopHos`（见 spec §R2）；**不做** 自定义托盘图标加载（现有 `electron_white.png` 通路已足够）；
+- **不做** 版本号改名；bundleName 按 R2 决策由 `top.fellow99.pi.PiDesktopHos` 改为 `top.fellow99.pi.PiDesktopHos`（见 spec §R2）；**不做** 自定义托盘图标加载（现有 `electron_white.png` 通路已足够）；
 - **不做** 图标多分辨率自适应（HarmonyOS 由 `$media:` 单文件 + 系统缩放，与现状一致）。
 
 ## 4. 风险与回滚

@@ -75,7 +75,7 @@ T01 ─┬─ T02 ─ T03 ─┐
 | 项 | 内容 |
 |---|---|
 | 回引 | FR-ver-019；AC-08 |
-| 动作 | `H="/d/oh-workspace/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe"`（`hdc` **不在 PATH**，必须绝对路径 + 引号）→ `"$H" list targets` 预检目标序列号 `3QC0226526001227` → `"$H" -t 3QC0226526001227 uninstall org.fellow99.pi.PiDesktop` → `cd` 到产物目录 → `"$H" -t 3QC0226526001227 app install electron-default-signed.hap`（相对路径）→ `MSYS_NO_PATHCONV=1 "$H" -t 3QC0226526001227 shell "aa start -a EntryAbility -b org.fellow99.pi.PiDesktop"` |
+| 动作 | `H="/d/oh-workspace/DevEco Studio/sdk/default/openharmony/toolchains/hdc.exe"`（`hdc` **不在 PATH**，必须绝对路径 + 引号）→ `"$H" list targets` 预检目标序列号 `3QC0226526001227` → `"$H" -t 3QC0226526001227 uninstall top.fellow99.pi.PiDesktopHos` → `cd` 到产物目录 → `"$H" -t 3QC0226526001227 app install electron-default-signed.hap`（相对路径）→ `MSYS_NO_PATHCONV=1 "$H" -t 3QC0226526001227 shell "aa start -a EntryAbility -b top.fellow99.pi.PiDesktopHos"` |
 | 完成判据 | 安装输出 `install bundle successfully`；`aa start` 成功返回；目标序列号在线 |
 | 产出 | `logs/20261015-1/T06-install.txt` |
 | 风险 | R-c（设备离线 / 需 `connect-key`）→ 每步先 `hdc list targets`；设备侧路径需 `MSYS_NO_PATHCONV=1` 防 Git-Bash 改写 |

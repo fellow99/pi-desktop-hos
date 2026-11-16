@@ -13,7 +13,7 @@
 > **需求编号:** `013-branding-r2` ｜ **需求名称:** 包名修改 ｜ **Git 分支:** 不改动 ｜ **日期:** 2026-11-14
 > **性质:** 按**产品决策**变更 bundleName，**覆盖**本规格 §2 与 FR-brand-014 / AC-10 中「不改 bundleName」的表述；版本号不变。
 
-bundleName 由 `org.fellow99.pi.PiDesktop` 改为 **`top.fellow99.pi.PiDesktopHos`**：
+bundleName 由 `top.fellow99.pi.PiDesktopHos` 改为 **`top.fellow99.pi.PiDesktopHos`**：
 
 - 变更 `AppScope/app.json5` 的 `bundleName`。
 - 同步内部自引用：`electron/src/main/resources/base/profile/shortcuts_config.json`、`runtime-overlays/electron/src/main/resources/base/profile/shortcuts_config.json`（两处 overlay 的 `bundleName`）、
@@ -51,7 +51,7 @@ Logo 是 pi-web 自带图标、应用图标是参考工程拷贝来的**占位�
   `patches/` 仍 **0 条**（品牌化全部落在本工程自己的产物与 overlay 上）。
 - **不做** i18n 文案重写（除品牌名本身）：技术标识符（`pi-web:*` localStorage key、`@agegr/pi-web` 包名、
   `pi_web_session` cookie、SW 缓存前缀等）**一律不改**，避免破坏兼容与用户数据。
-- **不改**版本号（仍 `0.11.1 / 1101`）、不改启动流程与能力面。**R2 例外**：bundleName 由 `org.fellow99.pi.PiDesktop` 改为 `top.fellow99.pi.PiDesktopHos`（见 §R2）。
+- **不改**版本号（仍 `0.11.1 / 1101`）、不改启动流程与能力面。**R2 例外**：bundleName 由 `top.fellow99.pi.PiDesktopHos` 改为 `top.fellow99.pi.PiDesktopHos`（见 §R2）。
 - 不做发布证书 / 上架材料。
 
 ## 3. 上游事实（本规格前提，已核实）
@@ -112,7 +112,7 @@ Logo 是 pi-web 自带图标、应用图标是参考工程拷贝来的**占位�
   不得新增 `patches/` 补丁。品牌化只在**本工程自己的**产物（pi-dist 副本）与 overlay 上进行。
 - **FR-brand-013**（MUST）：不得回归既有能力：应用启动到「就绪」、会话可建、真实对话可完成、
   `bash`/`grep`/`find` 三个工具仍可用（需求 102 的成果）。
-- **FR-brand-014**（MUST）：版本号**不变**（`0.11.1 / 1101`）。**R2 例外**：bundleName 由 `org.fellow99.pi.PiDesktop` 改为 `top.fellow99.pi.PiDesktopHos`（见 §R2），版本号不变。
+- **FR-brand-014**（MUST）：版本号**不变**（`0.11.1 / 1101`）。**R2 例外**：bundleName 由 `top.fellow99.pi.PiDesktopHos` 改为 `top.fellow99.pi.PiDesktopHos`（见 §R2），版本号不变。
 
 ### 4.5 文档
 
@@ -134,7 +134,7 @@ Logo 是 pi-web 自带图标、应用图标是参考工程拷贝来的**占位�
 | AC-07 | 上游三仓工作树 **0 项改动**（已跟踪文件）；`patches/` 仍 0 条 | `git -C ../pi status`、`git -C ../pi-web status`、`git -C ../harmonypc-electron status`、`ls patches/` |
 | AC-08 | 负向：物料缺失时构建**失败**且信息明确 | 临时移走 `assets/logo.png`（+ `logo-1024-with-bg.png`）后跑品牌化 → 非零退出 |
 | AC-09 | 不回归：应用启动六项齐备、会话可建、真实对话完成、`bash`/`grep`/`find` 仍可用 | 真机 hilog + 会话 JSONL |
-| AC-10 | 版本号仍 `0.11.1 / 1101`，bundleName 由 `org.fellow99.pi.PiDesktop` 变更为 `top.fellow99.pi.PiDesktopHos`（R2） | `pack.info`、`AppScope/app.json5` |
+| AC-10 | 版本号仍 `0.11.1 / 1101`，bundleName 由 `top.fellow99.pi.PiDesktopHos` 变更为 `top.fellow99.pi.PiDesktopHos`（R2） | `pack.info`、`AppScope/app.json5` |
 | AC-11 | 文档同步且无残留矛盾表述 | diff 审阅 |
 | AC-12 | 代码评审完成且无未决 Critical/Important | `REVIEW_REPORT.md` |
 | AC-13 | 提交信息符合 `git-commit` 技能的规范前缀 | `git log` |

@@ -32,7 +32,7 @@
 | TC-18 | ②′ 门禁 0 FAIL | `<node22> scripts/smoke-node22.mjs` | FAIL = 0 | ✅ **PASS 9 / SKIP 1 / FAIL 0**（SKIP = SSE 项无会话可建连，属「本次环境无法证伪」，已按纪律记 SKIP 而非 PASS） | `T05-3-smoke.log` |
 | TC-19 | ③ `collect-pi` 产出 tar + marker | `<node22> node scripts/collect-pi.mjs` | 产出 `pi-dist.tar.gz` + SHA-256 marker（`pi-dist.version`） | ✅ `pi-dist` 27232 文件 / 843.2 MB → tar **149.3 MB** + marker `SHA-256 5d7ba2992773dfb59d12109c6261b94ff2bce79b24244aa4c015884ca6c3f779`；内置 WASM SWC 5 文件 / 29.0 MB；品牌化终检「`Pi Web` = 0 处」 | `T05-4-collect-pi.log` |
 | TC-20 | ④ `collect-app` 投放 resfile | `node scripts/collect-app.mjs` | tar 投放到 `web_engine/…/resfile/resources/app/pi-dist.*` | ✅ 投放目录 9 文件 / 149.4 MB（`main.js` 57.5 KB、`tar-extract.js` 7.0 KB、`package.json`、`pi-dist.tar.gz` 149.3 MB、`pi-dist.version`、`resources/pi-agent/` 3 文件） | `T05-5-collect-app.log` |
-| TC-21 | ⑤ 签名构建 + **独立复验** | `powershell -ExecutionPolicy Bypass -File scripts/build-debug.ps1`，再用 `hap-sign-tool verify-app` 复验 | `BUILD SUCCESSFUL` + 脚本签名断言 + `verify-app success`；Profile `type=debug`、`bundle-name=org.fellow99.pi.PiDesktop` | ✅ `BUILD SUCCESSFUL in 1 min 59 s`；已签名 HAP `electron-default-signed.hap` **353.6 MB**；脚本签名断言「Profile type = debug，与 -SignMode debug 一致」；独立复验 `profile type is: debug` → `verify codesign success` → `verify-app success`（HAP 370,828,887 B） | `T05-6-build-debug.log`、`T10-10-signature-verify.txt` |
+| TC-21 | ⑤ 签名构建 + **独立复验** | `powershell -ExecutionPolicy Bypass -File scripts/build-debug.ps1`，再用 `hap-sign-tool verify-app` 复验 | `BUILD SUCCESSFUL` + 脚本签名断言 + `verify-app success`；Profile `type=debug`、`bundle-name=top.fellow99.pi.PiDesktopHos` | ✅ `BUILD SUCCESSFUL in 1 min 59 s`；已签名 HAP `electron-default-signed.hap` **353.6 MB**；脚本签名断言「Profile type = debug，与 -SignMode debug 一致」；独立复验 `profile type is: debug` → `verify codesign success` → `verify-app success`（HAP 370,828,887 B） | `T05-6-build-debug.log`、`T10-10-signature-verify.txt` |
 
 ## B. 真机部署与启动
 
@@ -41,9 +41,9 @@
 | ID | 用例 | 方法 | 期望 | 结果 | 证据 |
 |---|---|---|---|---|---|
 | TC-22 | 设备在线预检 | `"$H" list targets` | 含 `3QC0226526001227` | ✅ 输出 `3QC0226526001227` | `T06-install.txt` |
-| TC-23 | 卸载旧版 | `"$H" -t 3QC0226526001227 uninstall org.fellow99.pi.PiDesktop` | `uninstall successfully`（或本就不存在） | ✅ `msg:uninstall bundle successfully` | `T06-install.txt` |
+| TC-23 | 卸载旧版 | `"$H" -t 3QC0226526001227 uninstall top.fellow99.pi.PiDesktopHos` | `uninstall successfully`（或本就不存在） | ✅ `msg:uninstall bundle successfully` | `T06-install.txt` |
 | TC-24 | 安装新版 | `cd` 产物目录 → `"$H" -t … app install electron-default-signed.hap`（相对路径） | `install bundle successfully` | ✅ `msg:install bundle successfully`（相对路径，规避 Git-Bash 盘符重写） | `T06-install.txt` |
-| TC-25 | 启动 | `MSYS_NO_PATHCONV=1 "$H" -t … shell "aa start -a EntryAbility -b org.fellow99.pi.PiDesktop"` | `start ability successfully` | ✅ `start ability successfully` | `T06-install.txt` |
+| TC-25 | 启动 | `MSYS_NO_PATHCONV=1 "$H" -t … shell "aa start -a EntryAbility -b top.fellow99.pi.PiDesktopHos"` | `start ability successfully` | ✅ `start ability successfully` | `T06-install.txt` |
 | TC-26 | 产物解压完成 | `hilog -x` | `解压完成：<N> 个文件` | ✅ `解压完成：27232 个文件；marker 已写入 /data/storage/el2/base/files/pi-dist.sha256`（首启） | `T07-hilog-firststart.txt` |
 | TC-27 | 进程内 Next 启动 | `hilog -x` | `启动 Next 服务器（进程内，0.0.0.0:<port>）` | ✅ `[stage] 启动 Next 服务器（进程内，0.0.0.0:35885）`（首启）；另一次 `0.0.0.0:39975` | `T07-hilog-firststart.txt`、`T07-hilog.txt` |
 | TC-28 | Next 就绪 | `hilog -x` | `Running next.config.ts took …ms` | ✅ `✓ Running next.config.ts took 286ms`（首启；另两次 217ms / 211ms） | `T07-hilog-firststart.txt` |

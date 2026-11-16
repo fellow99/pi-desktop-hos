@@ -73,7 +73,7 @@ T01 ─┬─ T02 ─ T03 ─┐
 | 项 | 内容 |
 |---|---|
 | 回引 | FR-ver-014；AC-08 |
-| 动作 | `hdc -t <key> uninstall org.fellow99.pi.PiDesktop` → `cd` 到产物目录 → `hdc -t <key> app install electron-default-signed.hap`（相对路径）→ `hdc -t <key> shell "aa start -a EntryAbility -b org.fellow99.pi.PiDesktop"` |
+| 动作 | `hdc -t <key> uninstall top.fellow99.pi.PiDesktopHos` → `cd` 到产物目录 → `hdc -t <key> app install electron-default-signed.hap`（相对路径）→ `hdc -t <key> shell "aa start -a EntryAbility -b top.fellow99.pi.PiDesktopHos"` |
 | 完成判据 | 安装输出 `install bundle successfully`；`aa start` 成功返回 |
 | 产出 | `logs/20261012-1/T06-install.txt` |
 | 风险 | R-e（hdc 重试）、无 BOM 的幂等重试 |

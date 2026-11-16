@@ -18,7 +18,7 @@
 更深入已签名真机验证见 [docs/真机验证记录.md](docs/真机验证记录.md)）
 · **上游基线**：`pi` **v1.5.2**（`Branch_v1.5.2`）+ `pi-web` **v0.17.0**（`Branch_v0.17.0`）
 · **运行时**：Electron **37.2.3**（Node **22.17.0** / ABI **v138**；HarmonyOS 侧经 `harmonypc-electron` 运行时）
-· **应用名 / 包名**：`Pi Desktop` / `org.fellow99.pi.PiDesktop`
+· **应用名 / 包名**：`Pi Desktop` / `top.fellow99.pi.PiDesktopHos`
 
 完整工程规划与交付记录见 **[docs/工程规划.md](docs/工程规划.md)**；设备侧能力结论的**权威文档**是
 **[docs/鸿蒙环境能力清单-v0.12.1.md](docs/鸿蒙环境能力清单-v0.12.1.md)**（本版轮次产出；
@@ -187,9 +187,9 @@ powershell -ExecutionPolicy Bypass -File scripts\build-release.ps1   # release �
 ### 安装与启动
 
 ```bash
-hdc uninstall org.fellow99.pi.PiDesktop
+hdc uninstall top.fellow99.pi.PiDesktopHos
 hdc app install -r electron/build/default/outputs/default/electron-default-signed.hap
-hdc shell aa start -a EntryAbility -b org.fellow99.pi.PiDesktop
+hdc shell aa start -a EntryAbility -b top.fellow99.pi.PiDesktopHos
 ```
 
 > ⚠️ **发布签名的包无法侧载**（会报 `signature verification failed due to not trusted app source`）。

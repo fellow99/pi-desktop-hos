@@ -44,7 +44,7 @@
 
 | 决策 | 结论 | 依据 |
 |------|------|------|
-| 包名 | `org.fellow99.pi.PiDesktop`（沿用骨架期） | `AppScope/app.json5`；工程规划 §11.3-1 |
+| 包名 | `top.fellow99.pi.PiDesktopHos`（沿用骨架期） | `AppScope/app.json5`；工程规划 §11.3-1 |
 | 显示名 | `Pi Desktop`（4 处同步） | FR-108-002；工程规划 §10 P0-4 |
 | 改名机制 | 多处同步 + 校验（不靠记忆） | 🔶 同型工程踩坑 |
 | 签名材料注入 | `hvigorfile.ts#afterNodeEvaluate`，`setBuildProfileOpt` 仅内存注入、不写回 | FR-108-006 |
@@ -65,7 +65,7 @@
 
 ```js
 appIdentity = {
-  bundleName: 'org.fellow99.pi.PiDesktop',
+  bundleName: 'top.fellow99.pi.PiDesktopHos',
   label: 'Pi Desktop',
   labelSources: [
     'AppScope/app.json5#label → AppScope/resources/base/element/string.json#app_name',
@@ -187,12 +187,12 @@ identity-check（4 处 label 一致 + 包名单一来源）
 ```bash
 # 安装与启动（bundleName 即身份真值）
 hdc app install -r electron/build/default/outputs/default/electron-default-signed.hap
-hdc shell aa start -a EntryAbility -b org.fellow99.pi.PiDesktop
-hdc uninstall org.fellow99.pi.PiDesktop        # 对照实验：清空后重装观察 JIT 权限首装行为
+hdc shell aa start -a EntryAbility -b top.fellow99.pi.PiDesktopHos
+hdc uninstall top.fellow99.pi.PiDesktopHos        # 对照实验：清空后重装观察 JIT 权限首装行为
 
 # 身份与状态取证
 hdc shell aa dump -a                              # Ability 状态与所属包名
-hdc shell "bm dump -n org.fellow99.pi.PiDesktop"  # 包信息（命令可用性 ⬜ 待验证）
+hdc shell "bm dump -n top.fellow99.pi.PiDesktopHos"  # 包信息（命令可用性 ⬜ 待验证）
 hdc shell "hilog -x | grep -i pi-desktop"
 ```
 

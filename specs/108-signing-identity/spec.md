@@ -13,7 +13,7 @@
 
 定义并守护本应用的**身份**与**可分发资格**：
 
-- 应用显示名 **Pi Desktop**、bundleName **`org.fellow99.pi.PiDesktop`**，并保证改名时「多处同步」不漏；
+- 应用显示名 **Pi Desktop**、bundleName **`top.fellow99.pi.PiDesktopHos`**，并保证改名时「多处同步」不漏；
 - 签名材料（`signing.debug.local.json` / `signing.release.local.json`）由 `hvigorfile.ts` 在 `afterNodeEvaluate` **仅内存注入**，不入库、不写回；
 - ACL 归属：本包名需单独申请 **3 项**受限权限（`kernel.ALLOW_WRITABLE_CODE_MEMORY` / `READ_PASTEBOARD` / `READ_WRITE_DESKTOP_DIRECTORY`，清单对齐 `dsh-desktop-hos/docs/ACL申请清单-v1.md`），其中 `ohos.permission.kernel.ALLOW_WRITABLE_CODE_MEMORY` 是 Electron/V8 启用 JIT 的前提（决定整应用能否启动，而非某功能降级）；
 - `versionCode` 规则与上架身份类合规项（图标、禁用词、调试开关）的构建期守卫。
@@ -58,7 +58,7 @@
 
 ### 3.1 身份与命名
 
-- FR-108-001 bundleName 的**唯一来源** MUST 为 `AppScope/app.json5`（当前值 `org.fellow99.pi.PiDesktop`）；本工程其它位置出现的同名字面量 MUST 为**派生校验点**（如 `scripts/collect-runtime.mjs` 的 `EXPECTED_BUNDLE`），MUST NOT 出现与之不一致的第二份真值来源。
+- FR-108-001 bundleName 的**唯一来源** MUST 为 `AppScope/app.json5`（当前值 `top.fellow99.pi.PiDesktopHos`）；本工程其它位置出现的同名字面量 MUST 为**派生校验点**（如 `scripts/collect-runtime.mjs` 的 `EXPECTED_BUNDLE`），MUST NOT 出现与之不一致的第二份真值来源。
 - FR-108-002 应用显示名 `Pi Desktop` MUST 同步**四处**：① `AppScope/app.json5` 的 `label` 指向的 `AppScope/resources/base/element/string.json#app_name`；②③④ `electron/src/main/resources/{base,en_US,zh_CN}/element/string.json` 的 `EntryAbility_label`；并对 `web_engine` 内任何硬编码 bundle 的适配点做同步校验。
 - FR-108-003 命名 MUST NOT 包含禁用词（如 `Harmony`、`DeepSeek`、`内测`、`测试版`、`预览版`），且 README 与应用内 MUST 给出 pi / pi-web 的第三方与非隶属声明。
 - FR-108-004 应用主体 / 应用名 / 包名 MUST 三一致（与 APP 备案一致）；改名等价于新建应用，MUST 触发备案、ACL 与 Profile 的复核。
@@ -175,7 +175,7 @@
 - 约束：MUST NOT 使用共享签名；MUST NOT 以 `CUSTOM_SANDBOX` 替代进程沙箱；本批次 ACL **只申请 3 项**（FR-108-011），其余受限项一律不申请（FR-108-013）。
 - 约束：本工程**不随包分发自有 ELF**，故 MUST NOT 申请二进制证书（`certType: 4`）与 `ALLOW_EXTERNAL_NATIVE_CODE` / `kernel.LOAD_INDEPENDENT_LIBRARY`（🔶 沿用 dsh 结论：个人主体不可得，且本工程无此路线）。
 - 约束：`READ_WRITE_DESKTOP_DIRECTORY` 为 `system_basic`，是当前唯一的上架风险项，MUST 在上架前复核（`docs/ACL申请清单.md` §6）。
-- ⬜ 待验证：`org.fellow99.pi.PiDesktop` 是否与已注册的应用主体一致（影响签名、ACL 归属与备案三一致）。**定论方式**：人工核对 AGC/备案信息（`docs/工程规划.md` §11.3-1、O9）；**结论落** `docs/工程规划.md` §11.3 与 `docs/ACL申请清单.md` §10。
+- ⬜ 待验证：`top.fellow99.pi.PiDesktopHos` 是否与已注册的应用主体一致（影响签名、ACL 归属与备案三一致）。**定论方式**：人工核对 AGC/备案信息（`docs/工程规划.md` §11.3-1、O9）；**结论落** `docs/工程规划.md` §11.3 与 `docs/ACL申请清单.md` §10。
 - ⬜ 待验证：ACL 审批的前置条件与节奏（是否要求应用已创建/已提交、试用调试 Profile 的实际可用性）。**定论方式**：AGC 实际提交一次并观察返回（`docs/ACL申请清单.md` §8/§9）；**结论落** `docs/ACL申请清单.md` §9 提交记录与 §10 变更记录。
 - ⬜ 待验证：JIT 受限权限在目标 API 版本上的实际授予与拒绝行为。**定论方式**：真机探针（安装/启动 + JIT 示性），对照 `hdc app install -r` 覆盖安装；**结论落** `docs/真机验证记录.md`。
 - ⬜ 待验证：release Profile 的 `type` 字段判定方式与「ACL 变化后重建 Profile」的时机。**定论方式**：拿到 release Profile 后 `hap-sign-tool verify-app` 打印其 `type`/`acls`，并对比 ACL 变更前后；**结论落** `docs/ACL申请清单.md` §6/§8。

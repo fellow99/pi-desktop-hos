@@ -1,4 +1,4 @@
-# ACL 申请清单（Pi Desktop / `org.fellow99.pi.PiDesktop`）
+# ACL 申请清单（Pi Desktop / `top.fellow99.pi.PiDesktopHos`）
 
 > **版本**：v1 ｜ **日期**：2026-10-14（**2026-11-03 复核**） ｜ **适用工程**：`pi-desktop-hos`
 > **用途**：**申请操作手册**。列出本工程必须申请的**受限权限（ACL）**、**开放权限（免 ACL）**、**明确不申请**的项与理由，以及 AGC 提交口径与上架前置复核。§3 的「申请原因 / 使用场景」为**可直接照填 AGC 表单**的文本。
@@ -12,7 +12,7 @@
 
 ## 1. 摘要：要申请什么
 
-申请路径：**AGC → 开发与服务 → 项目 → 应用（`org.fellow99.pi.PiDesktop`）→ 项目设置 → ACL权限 → 未获取权限 → 勾「我已知晓」→ 勾选目标权限 → 填申请原因与使用场景 → 提交申请**。
+申请路径：**AGC → 开发与服务 → 项目 → 应用（`top.fellow99.pi.PiDesktopHos`）→ 项目设置 → ACL权限 → 未获取权限 → 勾「我已知晓」→ 勾选目标权限 → 填申请原因与使用场景 → 提交申请**。
 
 | # | 权限名 | level | grantMode | since | 是否需 ACL | 状态 | 服务的产品能力 |
 |---|---|---|---|---|---|---|---|
@@ -41,7 +41,7 @@
   ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY
   ```
   而本工程 `build-profile.json5` 为 `signingConfigs: []`（无签名材料）→ DevEco 自动签名生成的 debug Profile **不含这些 ACL** → 报错。
-- **对策（必须在 DevEco/AGC 侧完成，仓库改不了 Profile）**：给`org.fellow99.pi.PiDesktop` 生成调试 Profile 时，让 `allowed-acls` 覆盖上述 **6 项**（A0/A1/A2 三项 `system_basic` 是必需；另三项 normal 目录权限随 Profile 一并带，行为与 dsh-hos 一致）。自动签名若不给 ACL，可走 AGC 申请（见 §1 路径）或手工把这三项 `system_basic` 加进 Profile 的 ACL。
+- **对策（必须在 DevEco/AGC 侧完成，仓库改不了 Profile）**：给`top.fellow99.pi.PiDesktopHos` 生成调试 Profile 时，让 `allowed-acls` 覆盖上述 **6 项**（A0/A1/A2 三项 `system_basic` 是必需；另三项 normal 目录权限随 Profile 一并带，行为与 dsh-hos 一致）。自动签名若不给 ACL，可走 AGC 申请（见 §1 路径）或手工把这三项 `system_basic` 加进 Profile 的 ACL。
 
 ---
 

@@ -1,0 +1,16 @@
+diff --git a/app/api/sessions/[id]/export/route.ts b/app/api/sessions/[id]/export/route.ts
+index ee06eb0..5b099ad 100644
+--- a/app/api/sessions/[id]/export/route.ts
++++ b/app/api/sessions/[id]/export/route.ts
+@@ -80,7 +80,10 @@ async function getPiCliPath(): Promise<string | null> {
+ 
+ async function exportSession(filePath: string, outputPath: string): Promise<void> {
+   const cliPath = await getPiCliPath();
+-  if (cliPath) {
++  // 只有「当前进程就是可用的运行时二进制」时才 spawn CLI：桌面端 process.execPath 是
++  // node/electron 本体；鸿蒙端它指向应用包内并不存在的路径、且 spawn 不可用 —— 此时必须
++  // 回退到下面的进程内 exportFromFile，否则整条导出直接 500（真机实测 ENOENT）。
++  if (cliPath && existsSync(process.execPath)) {
+     await execFileAsync(process.execPath, [cliPath, "--export", filePath, outputPath], {
+       cwd: process.cwd(),
+       timeout: 30_000,

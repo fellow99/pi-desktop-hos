@@ -3,6 +3,27 @@
 > **现状（2026-11-05）**：**2 条**补丁。`patches/v0.12.1/` 按 v0.12.1 生成；`v0.13.0`、`v0.14.2`、**`v0.15.0`** 为同内容副本；`v0.14.1` 上游 `DirectoryPicker.tsx` 有实质改动（#1462 backdrop 按下追踪）致 `0001-workspace-picker-roots` 上下文漂移，已在 `patches/v0.14.1/` 重出（**保留上游 #1462 修复语义**，在其上重放工作区根 Tab / 面包屑 / 权限归因逻辑），`0002-session-export` 为同内容副本；v0.15.0 补丁领域唯一交集是 session-export（上游 `1fbf6c6` 删除被 pi 1.5.0 迭代模板废弃的 `patchExportHtml()`），与本工程两条补丁的 `exportSession()` 守卫 / `webpackIgnore` 改动区域**不重叠**，故 `patches/v0.14.2/` 两条直接拷贝为 `patches/v0.15.0/`（逐字节相同），已在 pristine v0.15.0 上按序幂等应用验证（累计 dry-run 14/14 全绿，含 ark/android 集合）；旧目录保留可追溯 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
 > 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
+
+## 0.0 v0.18.0 rebase 记录（2026-11-22）
+
+| 项 | 内容 |
+|---|---|
+| 上游基线 | `pi-web` tag **`v0.18.0`**（`2daa0d131eae6c2fd8c2a80872eee01ea3c7a0a1`，annotated tag `38bb6805`，`Release v0.18.0`）· `pi` tag **`v1.6.0`**（`faac585884ae2c013a6b1400f3e9e77f10b34bac`） |
+| 生成方式 | 独立 detached worktree `git worktree add --detach ../.tmp/wt-018 v0.18.0`；逐条 `git apply`（冲突条目手工重放）→ `git add` → `git commit` → `git diff HEAD^ HEAD > patches/v0.18.0/<同名>.patch`；**未经 PowerShell 重定向**，全目录 **UTF-8 / LF** |
+| 行尾口径修正 | v0.17.0 目录下 19 条补丁中 18 条为 **CRLF**（仅 `0007`/`0001-sync-daemon` 为 LF）。在 LF 工作树（WSL/Linux）上 `git apply` 对 CRLF 补丁必然失败，只有 Git-for-Windows（`core.autocrlf=true`）能容错。本轮起**统一 LF**，与「UTF-8 / LF」纪律一致，并已在 LF 环境下逐条验证可应用 |
+| 上游变更（v0.17.0→v0.18.0） | 127 文件，+4874/−946，34 提交 |
+| 冲突与处置 | 见下「本轮变更」 |
+| 验证 | ① pristine v0.18.0 上按文件名排序逐条 `git apply --check` + `git apply` 全绿；② 反序 `git apply --reverse` 后 `git status --porcelain` 为空（受影响文件 SHA-256 逐条还原） |
+
+### 本轮变更
+
+| 补丁 | 变更 |
+|---|---|
+| `0001-workspace-picker-roots` | 无冲突（上游 `DirectoryPicker.tsx` / `lib/directory-browser.ts` 在 v0.18.0 未变），按上下文重新生成 |
+| `0002-session-export-in-process-fallback` | **删除冗余 hunk**：上游 #1695 已自行给该动态 import 加上 `/* webpackIgnore: true */`（与本补丁原第二 hunk 同一处、同一写法），故本轮只保留首 hunk（`if (cliPath && existsSync(process.execPath))` 运行时守卫），补丁由 1798 B 缩至约 965 B |
+| `0003-system-back` | 无冲突（`components/AppShell.tsx` 有上游改动但不在本补丁上下文区间），重新生成 |
+| `0004-sync-daemon-settings-tab` | 无冲突，重新生成 |
+
 ## 0. 已登记补丁
 
 ### P203-1 — 四主目录「选择工作区目录」对话框
@@ -203,9 +224,9 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 
 | 项 | 内容 |
 |---|---|
-| 文件 | `patches/v0.17.0/0004-sync-daemon-settings-tab.patch` |
+| 文件 | `patches/v0.18.0/0004-sync-daemon-settings-tab.patch` |
 | 全局编号 | `P301-H1` |
-| 打补丁的上游 | `pi-web` tag `v0.17.0` |
+| 打补丁的上游 | `pi-web` tag `v0.18.0` |
 | 内容 | `lib/settings-navigation.ts`（加 `sync`）、`components/SettingsPanel.tsx`（分区项/渲染）、新增 `components/SyncConfig.tsx`（fetch `/api/sync-daemon`）、新增 `app/api/sync-daemon/route.ts`（代理进程内控制面）、三套 `lib/i18n/messages/*.ts` |
 | 触发条件 | 301 第三轮：pi-desktop-hos 无可用子进程，sync-daemon 与插件改为**进程内**运行；设置入口统一到 pi-web 设置对话框 |
 | 实施时机 | `assemble-payload.mjs` / `collect-pi.mjs` 构建期幂等应用，构建后回退（`../pi-web` 保持 pristine） |

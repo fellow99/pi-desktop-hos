@@ -119,6 +119,41 @@ console.log(`${LOG} pi     = ${piRoot}`);
 const nodeModules = join(piWebRoot, 'node_modules');
 const nextDir = join(piWebRoot, '.next');
 
+/**
+ * 安装树与 lock 是否同一版本口径。
+ *
+ * 为什么需要：`node_modules` 存在就跳过 `npm ci` 的判据只证明「装过」，不证明「装的是当前版本」。
+ * 上游 tag 一升（pi-web 0.17.0 → 0.18.0 带 next 16.4.4 → 16.4.6、pi 1.5.2 → 1.6.0），
+ * 旧 node_modules 会让整轮「升级」静默落空：构建成功、产物里的依赖仍是上一版。
+ * 0.18.0 轮实测踩中（产物 pi-dist 内 next=16.4.4 / pi-coding-agent=1.5.2，而 lock 为 16.4.6 / 1.6.0）。
+ */
+function installedVersionsStale(source) {
+  const lockPath = join(source, 'package-lock.json');
+  if (!existsSync(lockPath)) return false;
+  let locked;
+  try {
+    locked = JSON.parse(readFileSync(lockPath, 'utf8')).packages ?? {};
+  } catch {
+    return false;
+  }
+  for (const [name, meta] of Object.entries(locked)) {
+    if (!name.startsWith('node_modules/')) continue;
+    const installedPkg = join(source, name, 'package.json');
+    if (!existsSync(installedPkg)) continue;
+    let actual;
+    try {
+      actual = JSON.parse(readFileSync(installedPkg, 'utf8')).version;
+    } catch {
+      continue;
+    }
+    if (meta?.version && actual !== meta.version) {
+      console.log(`${LOG} 安装树与 lock 不一致：${name} 已装 ${actual}，lock 为 ${meta.version} → 重装`);
+      return true;
+    }
+  }
+  return false;
+}
+
 // ── 1. 依赖安装（仅缺失时）────────────────────────────────────────────
 banner('1. 依赖安装');
 /**
@@ -136,11 +171,13 @@ if (!existsSync(npmCli)) {
   console.warn(`${LOG} ⚠ 未找到 ${npmCli}，回退到 PATH 上的 npm（可能与构建用 node 不一致）`);
 }
 
-if (existsSync(nodeModules)) {
-  console.log(`${LOG} node_modules 已存在，跳过 npm ci：${nodeModules}`);
-  console.log(`${LOG}（需要重装时手动删除 node_modules 后重跑本脚本）`);
-} else {
+if (!existsSync(nodeModules)) {
   installDeps();
+} else if (installedVersionsStale(piWebRoot)) {
+  console.log(`${LOG} node_modules 存在但与 package-lock.json 版本不一致 → 强制 npm ci`);
+  installDeps();
+} else {
+  console.log(`${LOG} node_modules 已存在且与 lock 同版本，跳过 npm ci：${nodeModules}`);
 }
 
 // ── 1b. 上游补丁（幂等；需求 203-plugin-workspace-picker）────────────────

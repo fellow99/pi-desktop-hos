@@ -10,7 +10,7 @@
  *
  * 前置：必须先跑 scripts/collect-runtime.mjs（目标目录由它创建）。
  */
-import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,13 +64,29 @@ console.log(`${LOG} 目标目录：${appDestDir}`);
 // ── 1. 主进程文件 ─────────────────────────────────────────────────────
 banner('1. 投放主进程（src-main/）');
 if (!existsSync(srcMain)) fail(`src-main/ 不存在：${srcMain}`);
-const mainFiles = ['main.js', 'tar-extract.js', 'package.json'];
+const mainFiles = ['main.js', 'tar-extract.js', 'sync-runtime.js', 'package.json'];
 for (const name of mainFiles) {
   const src = join(srcMain, name);
   if (!existsSync(src)) fail(`缺少主进程文件：${src}`);
   cpSync(src, join(appDestDir, name), { force: true });
   const size = statSync(src).size;
   console.log(`${LOG} ✔ ${name} → ${name}（${(size / 1024).toFixed(1)} KB）`);
+}
+
+// 完整性门禁：main.js 里的每一个相对 require('./x.js') 都必须在投放目录里存在。
+// 为什么需要它：mainFiles 是手写清单，301 轮主进程新增 require('./sync-runtime.js') 时
+// 清单没跟上，构建照样成功、HAP 装到设备才 MODULE_NOT_FOUND（0.18.0 轮真机前发现）。
+{
+  const mainSource = readFileSync(join(srcMain, 'main.js'), 'utf8');
+  const relatives = new Set();
+  for (const m of mainSource.matchAll(/require\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g)) {
+    relatives.add(m[1].replace(/^\.\//, ''));
+  }
+  const missing = [...relatives].filter((rel) => !existsSync(join(appDestDir, rel)));
+  if (missing.length > 0) {
+    fail(`main.js 的相对 require 在投放目录中缺失：${missing.join(', ')}\n    → 请把它们加进 mainFiles（本文件第 1 步）`);
+  }
+  console.log(`${LOG} ✔ 主进程相对 require 完整性：${relatives.size} 个引用全部在位`);
 }
 
 // ── 2. 产物归档 + SHA-256 marker ──────────────────────────────────────

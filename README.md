@@ -15,12 +15,13 @@
 > HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
 > The UI is reused 100% from upstream; the frontend is not forked.
 
-**Version**: `0.17.0` / `versionCode` `1700` (**verified on a real HarmonyOS device this round** — new bundle name
-`top.fellow99.pi.PiDesktopHos` first on-device round: boot / badge `web 0.17.0 · pi 1.5.2` / DeepSeek key / sandbox
-workspace / text chat / image-attachment pipeline byte-verified / git extension local lifecycle / in-process session
-export — see docs/真机验证记录.md round 9; the 0.15.0 and 0.13.0 rounds' device deployments are recorded in
-docs/真机验证记录.md](docs/真机验证记录.md))
-· **Upstream baseline**: `pi` **v1.5.2** (`Branch_v1.5.2`) + `pi-web` **v0.17.0** (`Branch_v0.17.0`)
+**Version**: `0.18.0` / `versionCode` `1800` (**built this round as an unsigned HAP** — this machine has no
+signing material and no test device, so signing and device re-verification are pending). The `0.17.0` round's
+signed HAP was device-verified on a real HarmonyOS device (new bundle name `top.fellow99.pi.PiDesktopHos` first
+on-device round: boot / badge `web 0.17.0 · pi 1.5.2` / DeepSeek key / sandbox workspace / text chat /
+image-attachment pipeline byte-verified / git extension local lifecycle / in-process session export — see
+docs/真机验证记录.md round 9; the 0.15.0 and 0.13.0 rounds are recorded there too).
+· **Upstream baseline**: `pi` **v1.6.0** (`Branch_v1.6.0`) + `pi-web` **v0.18.0** (`Branch_v0.18.0`)
 · **Runtime**: Electron **37.2.3** (Node **22.17.0** / ABI **v138**; on the HarmonyOS side via the `harmonypc-electron` runtime)
 · **App name / bundle name**: `Pi Desktop` / `top.fellow99.pi.PiDesktopHos`
 
@@ -107,7 +108,7 @@ Key points:
   This is fully transparent to the model and to pi-web presets.
 - **v0.11.1 required zero patches; v0.12.1 adds two**: all 8 registered candidates are covered
   by existing upstream mechanisms or by the shell extensions; v0.12.1 additionally carries two
-  idempotent, reversible patches under [`patches/v0.17.0/`](patches/v0.17.0/) (v0.15.0 carried the same three patches; `patches/v0.12.1/` retained for history) — `0001-workspace-picker-roots`
+  idempotent, reversible patches under [`patches/v0.18.0/`](patches/v0.18.0/) (four since v0.17.0; `patches/v0.12.1/` retained for history) — `0001-workspace-picker-roots`
   (workspace-root tabs in the directory browser) and `0002-session-export-in-process-fallback`
   (session export inside the in-process server). See [patches/README.md](patches/README.md).
 - **Branding is applied to the upstream artifact copy** (requirement 103): UI text, the Logo and
@@ -124,7 +125,7 @@ container repository):
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] upstream host + SDK, pinned to Branch_v1.2.0
-├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.17.0
+├── pi-web/                             # [submodule] upstream UI + server, pinned to Branch_v0.18.0
 ├── harmonypc-electron/                 # [submodule] Electron-on-HarmonyOS runtime (shell + manifest)
 ├── harmonypc-electron-versions/        # (plain dir, gitignored) v37 archive + native module material
 ├── assets/                             # parent-project brand assets (logo-1024-with-bg.png / logo.png / logo.svg)

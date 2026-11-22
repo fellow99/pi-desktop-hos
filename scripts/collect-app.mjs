@@ -3,7 +3,8 @@
  * collect-app.mjs — ④ 把主进程与预置模板投放到 HAP 载荷目录（设计文档 §8.1 阶段 ④）
  *
  * 投放点：<project>/web_engine/src/main/resources/resfile/resources/app/
- *   main.js / tar-extract.js / package.json   ← src-main/
+ *   main.js / tar-extract.js / sync-runtime.js / package.json   ← src-main/
+ *     （清单是手写的：主进程新增相对 require 时必须同步本清单 —— 见第 1 步的完整性门禁）
  *   pi-dist.tar.gz / pi-dist.version          ← 工程根（③ 的产物）
  *   resources/pi-agent/                       ← config/（settings.json / mcp.json 模板，
  *                                               也是主进程首次启动时的解压投放源）

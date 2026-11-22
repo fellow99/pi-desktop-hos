@@ -33,6 +33,13 @@
 **构建前提**：依赖兄弟目录 `../harmonypc-electron`（运行时）、`../harmonypc-electron-versions`（v37 归档）、
 `../pi`、`../pi-web`、`../assets`；脱离 `pi-workspace` 单独 clone 会构建失败。
 
+**构建顺序红线（0.18.0 轮实测）**：`pi-desktop-ark` 的 `assemble-payload --apply` 会把它**自己打过补丁并重编**的
+`.next` 镜像进本工程的 `pi-dist/.next`（它的载荷源就是本工程 `pi-dist`）。因此：
+① 本工程 `collect-pi`/`collect-app` **必须在** ark 侧组装**之前**跑，否则会打进 ark 的编译产物；
+② 若在 ark 之后需要重出本工程载荷，**必须**重跑 `prepare-next` → `collect-pi` → `collect-app` → `build-hap` 全链，
+不能只重跑 `collect-pi`（那样会把 ark 的 `.next` 装进本工程的 HAP）。
+判据：`pi-dist/.next/BUILD_ID` 必须等于本工程最近一次 `prepare-next` 打印的 BUILD_ID。
+
 ## 三、常用命令
 
 ```bash

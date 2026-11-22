@@ -10,7 +10,7 @@
 |---|---|
 | 上游基线 | `pi-web` tag **`v0.18.0`**（`2daa0d131eae6c2fd8c2a80872eee01ea3c7a0a1`，annotated tag `38bb6805`，`Release v0.18.0`）· `pi` tag **`v1.6.0`**（`faac585884ae2c013a6b1400f3e9e77f10b34bac`） |
 | 生成方式 | 独立 detached worktree `git worktree add --detach ../.tmp/wt-018 v0.18.0`；逐条 `git apply`（冲突条目手工重放）→ `git add` → `git commit` → `git diff HEAD^ HEAD > patches/v0.18.0/<同名>.patch`；**未经 PowerShell 重定向**，全目录 **UTF-8 / LF** |
-| 行尾口径修正 | v0.17.0 目录下 19 条补丁中 18 条为 **CRLF**（仅 `0007`/`0001-sync-daemon` 为 LF）。在 LF 工作树（WSL/Linux）上 `git apply` 对 CRLF 补丁必然失败，只有 Git-for-Windows（`core.autocrlf=true`）能容错。本轮起**统一 LF**，与「UTF-8 / LF」纪律一致，并已在 LF 环境下逐条验证可应用 |
+| 行尾口径修正 | v0.17.0 目录下 19 条补丁中 15 条为 **CRLF**（`pi-desktop/0001` 与四条 `sync-daemon`/`system-back` 系为 LF）。在 LF 工作树（WSL/Linux）上 `git apply` 对 CRLF 补丁必然失败，只有 Git-for-Windows（`core.autocrlf=true`）能容错。本轮起**统一 LF**，与「UTF-8 / LF」纪律一致，并已在 LF 环境下逐条验证可应用 |
 | 上游变更（v0.17.0→v0.18.0） | 127 文件，+4874/−946，34 提交 |
 | 冲突与处置 | 见下「本轮变更」 |
 | 验证 | ① pristine v0.18.0 上按文件名排序逐条 `git apply --check` + `git apply` 全绿；② 反序 `git apply --reverse` 后 `git status --porcelain` 为空（受影响文件 SHA-256 逐条还原） |
@@ -33,7 +33,7 @@
 | 文件（v0.11.1 生成，保留可追溯） | `patches/v0.11.1/0001-workspace-picker-roots.patch` |
 | 全局编号 | `P203-1`（只增不改、不复用） |
 | 被 patch 的上游（v0.11.1 生成） | `pi-web` tag `v0.11.1`（`e783721`） |
-| 文件（v0.12.1 再生成，**当前生效**） | `patches/v0.12.1/0001-workspace-picker-roots.patch`（61527 B；sha256 `2be18400d3ed13d206b07527ddabfc4d09dd4baa8fbbf89f0cef2ea15b9dafc3`；LF） |
+| 文件（v0.18.0 再生成，**当前生效**） | `patches/v0.18.0/0001-workspace-picker-roots.patch`（63369 B；sha256 `9181a233484c5e44d98ab647f3227b7cca85f9c267de807a28ca6d83bc4ad6d5`；LF） |
 | 被 patch 的上游（v0.12.1 再生成） | `pi-web` tag **`v0.12.1`**（`f83b1a5`）—— 由 v0.11.1 版补丁按 v0.12.1 上下文再生成（独立 detached worktree：`git worktree add --detach <tmp> v0.12.1` → `git apply` 旧补丁 → `git diff --cached > patches/v0.12.1/…` → `git reset --hard`），**语义未变**（四主目录工作区选择器）；相对 v0.11.1 版**只有三套 `lib/i18n/messages/*.ts` 的 blob 哈希与 hunk 行号差异** —— 上游在 v0.12.1 给这三套 locale 各加 5 行（`git diff --numstat v0.11.1 v0.12.1` = 各 `+26/-12`），表现为 hunk 头 `@@ -279,7 +279,7 @@` → `@@ -284,7 +284,7 @@`；其余 4 个文件逐字节相同 |
 | 触及文件（7） | `lib/directory-browser.ts`（只增 + `getBrowseStartDirectory` 缺省起点）、`app/api/cwd/browse/route.ts`、`app/api/cwd/workspace-permission/route.ts`（新增）、`components/DirectoryPicker.tsx`、`lib/i18n/messages/{zh-CN,en,zh-TW}.ts`（入口文案「自定义路径…」→「选择工作区目录…」） |
 | **触发条件** | pi-web **没有** UI 插槽 / 客户端面插件机制：pi 扩展的 `ctx.ui` 只有 `select`/`confirm`/`input`/`editor` 四种对话框，`custom()` 在 RPC 模式返回 `undefined`（`pi/packages/coding-agent/docs/rpc-extension-ui.md`）。因此「四个主目录 Tab」这一对话框改造**无法**用插件机制实现，也没有任何上游现成机制可替代（对比：PL1 安装闸门有 `PI_OFFLINE` 等三点可选）。 |
@@ -41,7 +41,7 @@
 | **替代方案** | ① 纯插件方案：退化为 `ctx.ui.select` 列表，放弃四 Tab 与面包屑围栏（不满足验收标准 AC-1/AC-4，已否决）；② 只改 pi-web 工作树不打补丁：违反「上游工作树零改动」纪律、上游升级即丢失（已否决）；③ 自建独立 UI 页面/路由：改动面最大且重造目录浏览（已否决）。 |
 | 往返校验 | 构建期强制执行「应用 → 反向 → 断言 SHA-256 还原」（FR-203-022），并断言 `lib/directory-browser.ts` 含 `WORKSPACE_ROOTS_ENV`。构建成功后由阶段 6 **自动回退**，pi-web 结束时 pristine（FR-203-023）。另由 `scripts/test-workspace-picker.mjs` 的 44 断言在零设备条件下复验。 |
 | 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；不含 `package-lock.json`、不含二进制。 |
-| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.12.1/0001-workspace-picker-roots.patch`（v0.11.1 目录版：`patches/v0.11.1/0001-workspace-picker-roots.patch`） |
+| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.18.0/0001-workspace-picker-roots.patch`（v0.11.1 目录版：`patches/v0.11.1/0001-workspace-picker-roots.patch`） |
 | 规格 | `specs/203-plugin-workspace-picker/`、`docs/203-插件-选择工作区目录.md` |
 
 ### PFIX-1 — 会话导出在「无独立运行时二进制」的设备上回退到进程内导出
@@ -51,7 +51,7 @@
 | 文件（v0.11.1 生成，保留可追溯） | `patches/v0.11.1/0002-session-export-in-process-fallback.patch` |
 | 全局编号 | `PFIX-1`（只增不改、不复用；缺陷修复补丁，不挂编号需求） |
 | 被 patch 的上游（v0.11.1 生成） | `pi-web` tag `v0.11.1`（`e783721`） |
-| 文件（v0.12.1 再生成，**当前生效**） | `patches/v0.12.1/0002-session-export-in-process-fallback.patch`（1798 B；sha256 `7b46cb1911d5ae9451b9c7dbdfcacb80c51d647154a65c89eff542eac3e6f439`；LF） |
+| 文件（v0.18.0 再生成，**当前生效**） | `patches/v0.18.0/0002-session-export-in-process-fallback.patch`（965 B；sha256 `d5b1b48a3fef5b5bd2fc6ad78e7f9d169016d7a74f82108b4d32b5fc460c55f8`；LF） |
 | 被 patch 的上游（v0.12.1 再生成） | `pi-web` tag **`v0.12.1`**（`f83b1a5`）—— 由 v0.11.1 版补丁按 v0.12.1 上下文再生成（独立 detached worktree：`git worktree add --detach <tmp> v0.12.1` → `git apply` 旧补丁 → `git diff --cached > patches/v0.12.1/…` → `git reset --hard`），**语义未变**（会话导出进程内回退）；`app/api/sessions/[id]/export/route.ts` 在 v0.11.1→v0.12.1 之间无上游改动（`git diff --numstat v0.11.1 v0.12.1` 无输出），故与 v0.11.1 版**逐字节相同**（`diff` 无输出） |
 | 触及文件（1） | `app/api/sessions/[id]/export/route.ts`（**v0.12.1 再生成后**为 `:222` 的 spawn 前置条件加 `existsSync(process.execPath)`；`patches/v0.11.1/` 版为 `:219` —— 上游 `+5 行偏移`，见 `logs/20261015-1/T03-patches.txt`） |
 | **触发条件** | 真机点「完整历史」→ `/api/sessions/<id>/export` 走 `exportSession()` 的 **spawn CLI** 分支：`execFileAsync(process.execPath, [cliPath, "--export", …])`。设备上 `process.execPath` = `/data/app/electron.org/electron_1.0/bin/electron/electron` —— **该路径不存在**（实测 `fs.existsSync` 为 false），且鸿蒙侧本就没有可用的独立 node/electron 可执行文件，于是 `spawn … ENOENT` → 路由 500，导出页只显示一行 JSON 错误。修前必须先修掉「点『完整历史』闪退」（`PFIX-1` 的上游症状链见 `logs/20261015-crash/`）。 |
@@ -59,7 +59,7 @@
 | **替代方案** | ① 让设备侧能 spawn：需鸿蒙可用的 node/electron 可执行文件，环境不具备（`docs/鸿蒙环境能力清单-v0.11.1.md` 已登记 spawn/PTY 不可用），且不在本工程可改范围（已否决）；② 把 `dist/cli.js` 从 pi-dist 载荷中删掉以让 `getPiCliPath()` 返回 null：会牵连其它依赖 CLI 的路径，且是「靠删文件改变分支」的隐式耦合（已否决）；③ 在壳侧伪造 `process.execPath`：无法改变「设备上确实没有该二进制」的事实（已否决）。 |
 | 往返校验 | 构建期强制执行「应用 → 反向 → 断言 SHA-256 还原」。构建成功后由阶段 6 **自动回退**，pi-web 结束时 pristine。 |
 | 生成方式 | 独立 detached worktree（`git worktree add --detach <tmp> v0.11.1`）上修改并 `git diff` 导出；另在该 worktree 内验证「pristine 可应用」「先 0001 再 0002 不冲突」「两条往返后残留 0」。 |
-| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.12.1/0002-session-export-in-process-fallback.patch`（v0.11.1 目录版：`patches/v0.11.1/0002-session-export-in-process-fallback.patch`） |
+| 回退方式 | `git -C ../pi-web apply --reverse patches/v0.18.0/0002-session-export-in-process-fallback.patch`（v0.11.1 目录版：`patches/v0.11.1/0002-session-export-in-process-fallback.patch`） |
 | 规格 | `logs/20261015-crash/`（崩溃取证与修复记录） |
 
 ---
@@ -190,7 +190,7 @@ for (patch of patches/<tag>/*.patch)          # 按文件名排序，确定性
 
 **复核结论：**
 
-1. `P203-1`、`PFIX-1` **仍然必需**，已在 `patches/v0.12.1/` **按 v0.12.1 上下文重新生成**（§0 已登记为当前生效项），并跑通验收三断言（`git apply --check` 通过 / 语义守卫命中 / 应用→反向→逐文件 SHA-256 还原；原始输出见 `logs/20261015-1/T03-patches.txt`）。§1「本版本为空、不建目录」的结论自 v0.11.1 起已被推翻，本轮沿用。
+1. `P203-1`、`PFIX-1` **仍然必需**，当前生效件已随上游升级重出为 `patches/v0.18.0/` 下同名文件（§0 已登记；v0.12.1 目录保留可追溯），并跑通验收三断言（`git apply --check` 通过 / 语义守卫命中 / 应用→反向→逐文件 SHA-256 还原；原始输出见 `logs/20261015-1/T03-patches.txt`）。§1「本版本为空、不建目录」的结论自 v0.11.1 起已被推翻，本轮沿用。
 2. 候选 1–8 逐条复核后**仍不新增补丁**（见下表）；候选 8 的结论由「待决策」更新为「**不需要补丁**」（根因已由壳扩展同名顶替 `bash` 关闭）。
 3. 本轮**未发现新的必须补丁项**（检查范围与局限见表后说明）。
 

@@ -23,7 +23,7 @@ const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const piWebRoot = resolve(projectRoot, '../pi-web');
 const piRoot = resolve(projectRoot, '../pi');
 
-const EXPECTED_PI_WEB_VERSION = '0.17.0';
+const EXPECTED_PI_WEB_VERSION = '0.18.0';
 const LOG = '[prepare-next]';
 
 const KEEP_PATH_MARKERS = ['linux-arm64', 'arm64', 'ohos'];
@@ -109,7 +109,9 @@ const piWebPkgPath = join(piWebRoot, 'package.json');
 if (!existsSync(piWebPkgPath)) fail(`pi-web/package.json 不存在：${piWebPkgPath}`);
 const piWebPkg = readJson(piWebPkgPath);
 if (piWebPkg.version !== EXPECTED_PI_WEB_VERSION) {
-  console.warn(`${LOG} ⚠ pi-web 版本为 ${piWebPkg.version}，期望 ${EXPECTED_PI_WEB_VERSION}（继续，但产物与 baseline 不一致）`);
+  // 基线不一致必须硬失败：这条门禁存在的意义就是拦住「用错上游版本构建」。
+  // 曾经只 warn，于是整轮升级可以在 0.17.0 的树上「成功」产出 0.18.0 的版本号。
+  fail(`${LOG} pi-web 版本为 ${piWebPkg.version}，期望 ${EXPECTED_PI_WEB_VERSION}（拒绝用错基线构建）`);
 } else {
   console.log(`${LOG} pi-web 版本 = ${piWebPkg.version} ✔`);
 }
@@ -155,7 +157,7 @@ function installedVersionsStale(source) {
 }
 
 // ── 1. 依赖安装（仅缺失时）────────────────────────────────────────────
-banner('1. 依赖安装');
+banner('1. 依赖安装（缺失或与 lock 版本漂移时）');
 /**
  * npm 必须与构建用**同一个** node 跑（见上方 `--node` 的说明）。
  *

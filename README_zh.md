@@ -13,11 +13,11 @@
 > 在鸿蒙设备的 Electron 主进程内承载 **Pi Web**（`pi-web` 的 Next 服务器，含 agent 与 `/api/*`），
 > 渲染层同源加载该服务端提供的 Pi Web UI，界面 100% 复用上游，不 fork 前端。
 
-**版本**：`0.18.0` / `versionCode` `1800`（**本轮构建为未签名 HAP** —— 本机无签名材料、无测试设备，
-签名与真机复验待后续）。0.17.0 轮的签名 HAP 已在真机验证（`3QC0226526001227`）：启动/进程/渲染/版本徽标 `web 0.17.0 · pi 1.5.2`、
+**版本**：`0.19.0` / `versionCode` `1900`（**本轮构建并签名通过（debug 签名 HAP，382,924,615 B）** —— 签名材料取自本机 DevEco debug Profile；
+本轮无可用鸿蒙测试设备，真机复验待后续）。0.17.0 轮的签名 HAP 已在真机验证（`3QC0226526001227`）：启动/进程/渲染/版本徽标 `web 0.17.0 · pi 1.5.2`、
 DeepSeek Key、沙箱工作区、文本对话、图片附件链路、Git 扩展本地生命周期、进程内会话导出 —— 见
 [docs/真机验证记录.md](docs/真机验证记录.md) 第 9 轮；0.15.0 与 0.13.0 轮亦记录于该文件。
-· **上游基线**：`pi` **v1.6.0**（`Branch_v1.6.0`）+ `pi-web` **v0.18.0**（`Branch_v0.18.0`）
+· **上游基线**：`pi` **v1.6.1**（`Branch_v1.6.1`）+ `pi-web` **v0.19.0**（`Branch_v0.19.0`）
 · **运行时**：Electron **37.2.3**（Node **22.17.0** / ABI **v138**；HarmonyOS 侧经 `harmonypc-electron` 运行时）
 · **应用名 / 包名**：`Pi Desktop` / `top.fellow99.pi.PiDesktopHos`
 
@@ -90,7 +90,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
   `/system/bin/sh` + 随机哨兵行，结束判定**只看 stdout**、不等永不送达的进程事件；
   `find` / `grep` 走纯 JS 目录遍历，**零 `fd`/`rg`、零子进程**。对模型与 pi-web preset 完全透明。
 - **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0 起各版沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
-  当前 [`patches/v0.18.0/`](patches/v0.18.0/) 携带三条幂等可反向补丁（自 v0.17.0 起；中枢服务设置分区 `0004` 已于本轮退役，对接能力统一由 `pi-desktop` 提供）—— `0001-workspace-picker-roots`
+  当前 [`patches/v0.19.0/`](patches/v0.19.0/) 携带三条幂等可反向补丁（自 v0.17.0 起；中枢服务设置分区 `0004` 已于本轮退役，对接能力统一由 `pi-desktop` 提供）—— `0001-workspace-picker-roots`
   （目录浏览的工作区根 Tab）与 `0002-session-export-in-process-fallback`（会话导走进程内回退）。见
   [patches/README.md](patches/README.md)。
 - **品牌化在上游产物副本上完成**（需求 103）：界面文案、Logo 与全部图标位改用父工程物料，
@@ -105,7 +105,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
 ```
 pi-workspace/
 ├── pi/                                 # [submodule] 上游宿主 + SDK，固定 Branch_v1.4.0
-├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.18.0
+├── pi-web/                             # [submodule] 上游 UI + 服务端，固定 Branch_v0.19.0
 ├── harmonypc-electron/                 # [submodule] Electron-on-鸿蒙运行时（shell + manifest）
 ├── harmonypc-electron-versions/        # （普通目录，gitignore）v37 归档 + 原生模块材料
 ├── assets/                             # 父工程品牌物料（logo-1024-with-bg.png / logo.png / logo.svg）

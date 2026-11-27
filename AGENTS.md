@@ -13,8 +13,8 @@
 渲染层同源加载该服务的 UI。**UI 100% 复用上游，补丁 2 条**，不 fork 前端。
 
 - 应用名 / 包名：`Pi Desktop` / `top.fellow99.pi.PiDesktopHos`
-- 版本：`0.18.0` / `versionCode` `1800`（**0.18.0 本轮仅本机构建未签名 HAP，真机复验待测试机**；0.17.0 轮真机已验：新包名首装轮，徽标/对话/图片管线/Git 扩展/会话导出全过，见 `docs/真机验证记录.md` 轮次 9）
-- 上游基线：`pi` **v1.6.0** + `pi-web` **v0.18.0**
+- 版本：`0.19.0` / `versionCode` `1900`（**0.19.0 本轮仅本机构建未签名 HAP，真机复验待测试机**；0.17.0 轮真机已验：新包名首装轮，徽标/对话/图片管线/Git 扩展/会话导出全过，见 `docs/真机验证记录.md` 轮次 9）
+- 上游基线：`pi` **v1.6.1** + `pi-web` **v0.19.0**
 - 与 `pi-desktop-ark` 的关系：同为鸿蒙版别；本版**保留 Electron 运行时**（桌面 API 面更全）；ark 版是纯 ArkWeb + 进程内 Node。
 
 ## 二、关键目录
@@ -28,7 +28,7 @@
 | `scripts/` | 装配/构建脚本（`collect-pi.mjs`、`collect-runtime.mjs`、`prepare-next.mjs`、`brand-assets.mjs`、`smoke-node22.mjs`） |
 | `specs/` | 规格文档集（`011` 版本 / `013` 品牌化 / `1XX` 基础 / `2XX` 插件） |
 | `docs/` | 工程规划、鸿蒙环境能力清单、真机验证记录 |
-| `patches/` | 上游补丁（当前 3 条登记补丁，生效目录 `patches/v0.18.0/`） |
+| `patches/` | 上游补丁（当前 3 条登记补丁，生效目录 `patches/v0.19.0/`） |
 
 **构建前提**：依赖兄弟目录 `../harmonypc-electron`（运行时）、`../harmonypc-electron-versions`（v37 归档）、
 `../pi`、`../pi-web`、`../assets`；脱离 `pi-workspace` 单独 clone 会构建失败。

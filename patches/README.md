@@ -1,10 +1,28 @@
 # patches/ — 上游补丁集
 
-> **现状（2026-11-24）**：**3 条**补丁（`patches/v0.18.0/` 为当前生效目录；`0004-sync-daemon-settings-tab` 已于本轮退役：中枢服务对接统一由 `pi-desktop` 提供，本工程不再内嵌 sync-daemon）。`patches/v0.12.1/` 按 v0.12.1 生成；`v0.13.0`、`v0.14.2`、**`v0.15.0`** 为同内容副本；`v0.14.1` 上游 `DirectoryPicker.tsx` 有实质改动（#1462 backdrop 按下追踪）致 `0001-workspace-picker-roots` 上下文漂移，已在 `patches/v0.14.1/` 重出（**保留上游 #1462 修复语义**，在其上重放工作区根 Tab / 面包屑 / 权限归因逻辑），`0002-session-export` 为同内容副本；v0.15.0 补丁领域唯一交集是 session-export（上游 `1fbf6c6` 删除被 pi 1.5.0 迭代模板废弃的 `patchExportHtml()`），与本工程两条补丁的 `exportSession()` 守卫 / `webpackIgnore` 改动区域**不重叠**，故 `patches/v0.14.2/` 两条直接拷贝为 `patches/v0.15.0/`（逐字节相同），已在 pristine v0.15.0 上按序幂等应用验证（累计 dry-run 14/14 全绿，含 ark/android 集合）；旧目录保留可追溯 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
+> **现状（2026-11-27）**：**3 条**补丁（`patches/v0.19.0/` 为当前生效目录；`0004-sync-daemon-settings-tab` 已于本轮退役：中枢服务对接统一由 `pi-desktop` 提供，本工程不再内嵌 sync-daemon）。`patches/v0.12.1/` 按 v0.12.1 生成；`v0.13.0`、`v0.14.2`、**`v0.15.0`** 为同内容副本；`v0.14.1` 上游 `DirectoryPicker.tsx` 有实质改动（#1462 backdrop 按下追踪）致 `0001-workspace-picker-roots` 上下文漂移，已在 `patches/v0.14.1/` 重出（**保留上游 #1462 修复语义**，在其上重放工作区根 Tab / 面包屑 / 权限归因逻辑），`0002-session-export` 为同内容副本；v0.15.0 补丁领域唯一交集是 session-export（上游 `1fbf6c6` 删除被 pi 1.5.0 迭代模板废弃的 `patchExportHtml()`），与本工程两条补丁的 `exportSession()` 守卫 / `webpackIgnore` 改动区域**不重叠**，故 `patches/v0.14.2/` 两条直接拷贝为 `patches/v0.15.0/`（逐字节相同），已在 pristine v0.15.0 上按序幂等应用验证（累计 dry-run 14/14 全绿，含 ark/android 集合）；旧目录保留可追溯 —— `0001-workspace-picker-roots.patch`（编号 `P203-1`）与 `0002-session-export-in-process-fallback.patch`（编号 `PFIX-1`）。
 > 本文件 §1 起的历史结论（「本版本为空」）保留可追溯；补丁登记见 §0。
 
 
-## 0.0 v0.18.0 rebase 记录（2026-11-22）
+## 0.0 v0.19.0 rebase 记录（2026-11-27）
+
+| 项 | 内容 |
+|---|---|
+| 上游基线 | `pi-web` tag **`v0.19.0`**（`7b77aa1a01a74597280dd5bbc9221195411bddf4`，annotated tag `e5192a7557f73dadea42a76aab785f65597f2197`，`Release v0.19.0`）· `pi` tag **`v1.6.1`**（`ef4a1cfcca62b77ad3558337ff3e1c7f6beeadfe`） |
+| 生成方式 | 独立 detached worktree `git worktree add --detach ../.tmp/wt-019 v0.19.0`；逐条 `git apply`（冲突条目手工重放）→ `git add` → `git commit` → `git diff HEAD^ HEAD > patches/v0.19.0/<同名>.patch`；**未经 PowerShell 重定向**，全目录 **UTF-8 / LF** |
+| 上游变更（v0.18.0→v0.19.0） | 284 文件，+8976/−2383，44 提交 |
+| 冲突与处置 | 见下「本轮变更」 |
+| 验证 | ① pristine v0.19.0 上按文件名排序逐条 `git apply --check` + `git apply` 全绿（3/3）；② 反序 `git apply --reverse` 后 `git status --porcelain` 为空 |
+
+### 本轮变更
+
+| 补丁 | 变更 |
+|---|---|
+| `0001-workspace-picker-roots` | **1 处上下文冲突**：上游 #1757/#1762 系重构把 `components/DirectoryPicker.tsx` 的 `loadDirectories` / `createDirectory` 改用 `readJsonOrThrow`，并把两处 `cause instanceof Error ? … : String(cause)` 改为 `errorMessage(cause)`，导致本补丁的导入 hunk 与两处错误处理 hunk 上下文漂移。处置：`git apply --exclude=components/DirectoryPicker.tsx` 应用其余 6 个文件后，在 v0.19.0 上重放该文件（上游 4 处改动**逐一采纳**：`readJsonOrThrow` 导入 + `errorMessage` 导入 + `createDirectory` 改用 `readJsonOrThrow` + 两处 `errorMessage(cause)`）；`loadDirectories` 仍保留本补丁的 `BrowseFailure`（需读回 `code`/`permType`/`roots`，`readJsonOrThrow` 抛出后取不到响应体，故不采纳）。补丁 63369 B → 63335 B |
+| `0002-session-export-in-process-fallback` | 无冲突（上游 `app/api/sessions/[id]/export/route.ts` 改动只在 `Content-Disposition` 抽函数处，不在本补丁 hunk 上下文区间），逐字节沿用 |
+| `0003-system-back` | 无冲突（上游 `components/AppShell.tsx` +45/−22，不在本补丁上下文区间），逐字节沿用 |
+
+## 0.0b v0.18.0 rebase 记录（2026-11-22）
 
 | 项 | 内容 |
 |---|---|
@@ -32,7 +50,7 @@
 | 文件（v0.11.1 生成，保留可追溯） | `patches/v0.11.1/0001-workspace-picker-roots.patch` |
 | 全局编号 | `P203-1`（只增不改、不复用） |
 | 被 patch 的上游（v0.11.1 生成） | `pi-web` tag `v0.11.1`（`e783721`） |
-| 文件（v0.18.0 再生成，**当前生效**） | `patches/v0.18.0/0001-workspace-picker-roots.patch`（63369 B；sha256 `9181a233484c5e44d98ab647f3227b7cca85f9c267de807a28ca6d83bc4ad6d5`；LF） |
+| 文件（v0.19.0 再生成，**当前生效**） | `patches/v0.19.0/0001-workspace-picker-roots.patch`（63335 B；UTF-8 / LF） |
 | 被 patch 的上游（v0.12.1 再生成） | `pi-web` tag **`v0.12.1`**（`f83b1a5`）—— 由 v0.11.1 版补丁按 v0.12.1 上下文再生成（独立 detached worktree：`git worktree add --detach <tmp> v0.12.1` → `git apply` 旧补丁 → `git diff --cached > patches/v0.12.1/…` → `git reset --hard`），**语义未变**（四主目录工作区选择器）；相对 v0.11.1 版**只有三套 `lib/i18n/messages/*.ts` 的 blob 哈希与 hunk 行号差异** —— 上游在 v0.12.1 给这三套 locale 各加 5 行（`git diff --numstat v0.11.1 v0.12.1` = 各 `+26/-12`），表现为 hunk 头 `@@ -279,7 +279,7 @@` → `@@ -284,7 +284,7 @@`；其余 4 个文件逐字节相同 |
 | 触及文件（7） | `lib/directory-browser.ts`（只增 + `getBrowseStartDirectory` 缺省起点）、`app/api/cwd/browse/route.ts`、`app/api/cwd/workspace-permission/route.ts`（新增）、`components/DirectoryPicker.tsx`、`lib/i18n/messages/{zh-CN,en,zh-TW}.ts`（入口文案「自定义路径…」→「选择工作区目录…」） |
 | **触发条件** | pi-web **没有** UI 插槽 / 客户端面插件机制：pi 扩展的 `ctx.ui` 只有 `select`/`confirm`/`input`/`editor` 四种对话框，`custom()` 在 RPC 模式返回 `undefined`（`pi/packages/coding-agent/docs/rpc-extension-ui.md`）。因此「四个主目录 Tab」这一对话框改造**无法**用插件机制实现，也没有任何上游现成机制可替代（对比：PL1 安装闸门有 `PI_OFFLINE` 等三点可选）。 |

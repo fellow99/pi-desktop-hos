@@ -90,6 +90,39 @@ for (const name of mainFiles) {
   console.log(`${LOG} ✔ 主进程相对 require 完整性：${relatives.size} 个引用全部在位`);
 }
 
+// 版本一致性门禁：`src-main/package.json` 的 version 必须等于 `AppScope/app.json5` 的 versionName。
+// 为什么需要它：`src-main/package.json` 是手写清单里唯一带版本号的文件，它进的是**HAP 内嵌的
+// 主进程 manifest**（`resources/resfile/resources/app/package.json`），`app.getVersion()` 读的就是它。
+// 0.19.0 轮就漏改了它：`AppScope/app.json5` 与 `pack.info` 都是 0.19.0，而 HAP 内嵌 manifest 仍是
+// 0.18.0 —— 构建全绿、装到设备才自报旧版本。这里把它变成硬失败。
+{
+  const readVersion = (rel) => {
+    try {
+      return JSON.parse(readFileSync(join(projectRoot, rel), 'utf8')).version ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const json5VersionName = () => {
+    const text = readFileSync(join(projectRoot, 'AppScope', 'app.json5'), 'utf8');
+    const m = text.match(/"versionName"\s*:\s*"([^"]+)"/);
+    return m ? m[1] : null;
+  };
+  const mainVersion = readVersion(join('src-main', 'package.json'));
+  const appVersionName = json5VersionName();
+  if (!mainVersion || !appVersionName) {
+    fail(`读不到版本号：src-main/package.json=${mainVersion}｜AppScope/app.json5 versionName=${appVersionName}`);
+  }
+  if (mainVersion !== appVersionName) {
+    fail(
+      `主进程 manifest 版本与 AppScope/app.json5 不一致：src-main/package.json=${mainVersion}，` +
+        `AppScope/app.json5 versionName=${appVersionName}\n` +
+        '    → HAP 内嵌的 resources/resfile/resources/app/package.json 会被 app.getVersion() 读到，必须同步',
+    );
+  }
+  console.log(`${LOG} ✔ 主进程 manifest 版本 = AppScope versionName = ${mainVersion}`);
+}
+
 // ── 2. 产物归档 + SHA-256 marker ──────────────────────────────────────
 banner('2. 投放 pi-dist.tar.gz + pi-dist.version');
 for (const name of ['pi-dist.tar.gz', 'pi-dist.version']) {

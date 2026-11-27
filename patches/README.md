@@ -18,7 +18,7 @@
 
 | 补丁 | 变更 |
 |---|---|
-| `0001-workspace-picker-roots` | **1 处上下文冲突**：上游 #1757/#1762 系重构把 `components/DirectoryPicker.tsx` 的 `loadDirectories` / `createDirectory` 改用 `readJsonOrThrow`，并把两处 `cause instanceof Error ? … : String(cause)` 改为 `errorMessage(cause)`，导致本补丁的导入 hunk 与两处错误处理 hunk 上下文漂移。处置：`git apply --exclude=components/DirectoryPicker.tsx` 应用其余 6 个文件后，在 v0.19.0 上重放该文件（上游 4 处改动**逐一采纳**：`readJsonOrThrow` 导入 + `errorMessage` 导入 + `createDirectory` 改用 `readJsonOrThrow` + 两处 `errorMessage(cause)`）；`loadDirectories` 仍保留本补丁的 `BrowseFailure`（需读回 `code`/`permType`/`roots`，`readJsonOrThrow` 抛出后取不到响应体，故不采纳）。补丁 63369 B → 63335 B |
+| `0001-workspace-picker-roots` | **1 处上下文冲突**：上游 #1757/#1762 系重构把 `components/DirectoryPicker.tsx` 的 `loadDirectories` / `createDirectory` 改用 `readJsonOrThrow`，并把两处 `cause instanceof Error ? … : String(cause)` 改为 `errorMessage(cause)`，导致本补丁的导入 hunk 与两处错误处理 hunk 上下文漂移。处置：`git apply --exclude=components/DirectoryPicker.tsx` 应用其余 6 个文件后，在 v0.19.0 上重放该文件（上游 5 处改动**逐一采纳**：`readJsonOrThrow` 导入 + `errorMessage` 导入 + `createDirectory` 改用 `readJsonOrThrow` + 两处 `errorMessage(cause)`）；`loadDirectories` 仍保留本补丁的 `BrowseFailure`（需读回 `code`/`permType`/`roots`，`readJsonOrThrow` 抛出后取不到响应体，故不采纳）。补丁 63369 B → 63335 B |
 | `0002-session-export-in-process-fallback` | 无冲突（上游 `app/api/sessions/[id]/export/route.ts` 改动只在 `Content-Disposition` 抽函数处，不在本补丁 hunk 上下文区间），逐字节沿用 |
 | `0003-system-back` | 无冲突（上游 `components/AppShell.tsx` +45/−22，不在本补丁上下文区间），逐字节沿用 |
 

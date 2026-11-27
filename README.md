@@ -15,7 +15,7 @@
 > HarmonyOS device, and the renderer loads the Pi Web UI served by that same-origin server.
 > The UI is reused 100% from upstream; the frontend is not forked.
 
-**Version**: `0.19.0` / `versionCode` `1900` (**built and signed this round as a debug-signed HAP**, 382,924,615 B —
+**Version**: `0.19.0` / `versionCode` `1900` (**built and signed this round as a debug-signed HAP**, 382,924,600 B —
 signing material comes from this machine's DevEco debug profile; device re-verification was not possible this round). The `0.17.0` round's
 signed HAP was device-verified on a real HarmonyOS device (new bundle name `top.fellow99.pi.PiDesktopHos` first
 on-device round: boot / badge `web 0.17.0 · pi 1.5.2` / DeepSeek key / sandbox workspace / text chat /

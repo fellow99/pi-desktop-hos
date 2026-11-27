@@ -66,7 +66,4 @@
 - **风险（⬜ 待验证）**：Electron on HarmonyOS 上系统返回键的真机输入映射仍未实测（无设备）；
   若真机把返回键在 ArkUI 侧完全消费（不产生 `BrowserBack`），则派发路径不触发 —— 届时需回到
   ArkUI 侧派发（在 `runtime-overlays/` 内用 `runJavaScript` 派发 `pi-back`，仍不采用阻塞式 stopPropagation）。
-- **遗留**：`collect-app.mjs` 目前只投放 `main.js / tar-extract.js / package.json`，**不含**
-  `src-main/sync-runtime.js`（301 的进程内中枢同步运行时），故 301 相关主进程代码尚未随投放副本进 HAP ——
-  与 113 无关，待 301 收尾时一并补投。
 - **遗留**：HTML 弹窗不关闭（用户确认 ① 排除）。

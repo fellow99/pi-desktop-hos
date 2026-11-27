@@ -28,7 +28,7 @@
 | `scripts/` | 装配/构建脚本（`collect-pi.mjs`、`collect-runtime.mjs`、`prepare-next.mjs`、`brand-assets.mjs`、`smoke-node22.mjs`） |
 | `specs/` | 规格文档集（`011` 版本 / `013` 品牌化 / `1XX` 基础 / `2XX` 插件） |
 | `docs/` | 工程规划、鸿蒙环境能力清单、真机验证记录 |
-| `patches/` | 上游补丁（当前 4 条登记补丁，生效目录 `patches/v0.18.0/`） |
+| `patches/` | 上游补丁（当前 3 条登记补丁，生效目录 `patches/v0.18.0/`） |
 
 **构建前提**：依赖兄弟目录 `../harmonypc-electron`（运行时）、`../harmonypc-electron-versions`（v37 归档）、
 `../pi`、`../pi-web`、`../assets`；脱离 `pi-workspace` 单独 clone 会构建失败。

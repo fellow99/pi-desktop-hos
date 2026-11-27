@@ -90,7 +90,7 @@ CLI / RPC / JSON / SDK 四种集成入口。`Pi Web` 是它的本地浏览器界
   `/system/bin/sh` + 随机哨兵行，结束判定**只看 stdout**、不等永不送达的进程事件；
   `find` / `grep` 走纯 JS 目录遍历，**零 `fd`/`rg`、零子进程**。对模型与 pi-web preset 完全透明。
 - **v0.11.1 补丁集为 0 条必需，v0.12.1 追加 2 条、v0.13.0 起各版沿用**：已登记的 8 条候选全部由上游现成机制或壳扩展覆盖；
-  当前 [`patches/v0.18.0/`](patches/v0.18.0/) 携带四条幂等可反向补丁（自 v0.17.0 起）—— `0001-workspace-picker-roots`
+  当前 [`patches/v0.18.0/`](patches/v0.18.0/) 携带三条幂等可反向补丁（自 v0.17.0 起；中枢服务设置分区 `0004` 已于本轮退役，对接能力统一由 `pi-desktop` 提供）—— `0001-workspace-picker-roots`
   （目录浏览的工作区根 Tab）与 `0002-session-export-in-process-fallback`（会话导走进程内回退）。见
   [patches/README.md](patches/README.md)。
 - **品牌化在上游产物副本上完成**（需求 103）：界面文案、Logo 与全部图标位改用父工程物料，

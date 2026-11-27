@@ -3,7 +3,7 @@
  * collect-app.mjs — ④ 把主进程与预置模板投放到 HAP 载荷目录（设计文档 §8.1 阶段 ④）
  *
  * 投放点：<project>/web_engine/src/main/resources/resfile/resources/app/
- *   main.js / tar-extract.js / sync-runtime.js / package.json   ← src-main/
+ *   main.js / tar-extract.js / package.json   ← src-main/
  *     （清单是手写的：主进程新增相对 require 时必须同步本清单 —— 见第 1 步的完整性门禁）
  *   pi-dist.tar.gz / pi-dist.version          ← 工程根（③ 的产物）
  *   resources/pi-agent/                       ← config/（settings.json / mcp.json 模板，
@@ -65,7 +65,7 @@ console.log(`${LOG} 目标目录：${appDestDir}`);
 // ── 1. 主进程文件 ─────────────────────────────────────────────────────
 banner('1. 投放主进程（src-main/）');
 if (!existsSync(srcMain)) fail(`src-main/ 不存在：${srcMain}`);
-const mainFiles = ['main.js', 'tar-extract.js', 'sync-runtime.js', 'package.json'];
+const mainFiles = ['main.js', 'tar-extract.js', 'package.json'];
 for (const name of mainFiles) {
   const src = join(srcMain, name);
   if (!existsSync(src)) fail(`缺少主进程文件：${src}`);
@@ -75,8 +75,8 @@ for (const name of mainFiles) {
 }
 
 // 完整性门禁：main.js 里的每一个相对 require('./x.js') 都必须在投放目录里存在。
-// 为什么需要它：mainFiles 是手写清单，301 轮主进程新增 require('./sync-runtime.js') 时
-// 清单没跟上，构建照样成功、HAP 装到设备才 MODULE_NOT_FOUND（0.18.0 轮真机前发现）。
+// 为什么需要它：mainFiles 是手写清单，主进程新增相对 require 而清单没跟上时，
+// 构建照样成功、HAP 装到设备才 MODULE_NOT_FOUND（0.18.0 轮真机前发现过一次）。
 {
   const mainSource = readFileSync(join(srcMain, 'main.js'), 'utf8');
   const relatives = new Set();

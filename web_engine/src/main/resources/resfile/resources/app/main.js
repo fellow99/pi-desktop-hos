@@ -19,8 +19,6 @@
  */
 'use strict';
 
-const syncRuntime = require('./sync-runtime.js');
-
 const electron = require('electron');
 const { app, BrowserWindow, Menu, screen, shell } = electron;
 const nodeFs = require('node:fs');
@@ -1272,18 +1270,6 @@ app.whenReady().then(async () => {
     setStage(`等待服务就绪（HTTP 轮询 127.0.0.1:${state.port}，上限 ${READY_TIMEOUT_MS / 1000}s）`);
     await waitForReady(state.port);
 
-    // 301：pi-web 就绪后非阻塞启动中枢服务同步（主进程内 daemon + 插件；失败不影响首屏）。
-    try {
-      void syncRuntime.startSyncRuntime({
-        piDistRoot: state.piDistRoot,
-        serverUrl: state.server && state.server.url ? state.server.url : `http://127.0.0.1:${state.port}`,
-        agentDir: process.env.PI_CODING_AGENT_DIR || join(state.userData, 'pi-agent'),
-        password: state.password,
-      });
-    } catch (err) {
-      logWarn(`中枢服务同步启动失败（不影响首屏）：${describeError(err)}`);
-    }
-
     setStage('注入鉴权（会话 cookie + Basic 头），用户无需手动登录');
     await installAuthInjection(win, { host: state.lanIp, port: state.port, password });
 
@@ -1325,15 +1311,11 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', (event) => {
   const server = state.server;
-  if (!server || !server.close) {
-    void syncRuntime.stopSyncRuntime();
-    return;
-  }
+  if (!server || !server.close) return;
   state.server = null; // 只关一次
   event.preventDefault();
   logInfo('正在关闭服务端…');
   Promise.resolve()
-    .then(() => syncRuntime.stopSyncRuntime())
     .then(() => server.close())
     .catch((err) => logWarn(`关闭服务端失败：${describeError(err)}`))
     .finally(() => app.quit());

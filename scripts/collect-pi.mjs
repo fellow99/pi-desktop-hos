@@ -9,12 +9,11 @@
  *
  * 依赖：准备先跑过 scripts/prepare-next.mjs（pi-web 的 .next 与 node_modules 必须已就绪）。
  */
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
-  cpSync, createReadStream, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync,
+  cpSync, createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,26 +27,6 @@ const versionPath = join(projectRoot, 'pi-dist.version');
 const LOG = '[collect-pi]';
 const STRICT = process.argv.includes('--strict');
 
-/** 301：进程内中枢服务同步依赖（固定版本；随 pi-dist 分发）。 */
-const SYNC_DEP_PACKAGES = ['@pi-agent-hub/sync-daemon@0.1.2', '@pi-agent-hub/sync-plugin-pi-web@0.1.2'];
-
-function installSyncPackages(piDist) {
-  const dest = join(piDist, 'node_modules', '@pi-agent-hub');
-  if (existsSync(join(dest, 'sync-plugin-pi-web', 'dist', 'plugin.js'))) return;
-  const tmp = mkdtempSync(join(tmpdir(), 'pi-sync-deps-'));
-  try {
-    execSync(`npm install --prefix "${tmp}" --no-save --no-package-lock --ignore-scripts --omit=dev ${SYNC_DEP_PACKAGES.join(' ')}`, {
-      stdio: 'inherit',
-      cwd: projectRoot,
-      env: process.env,
-    });
-    mkdirSync(join(piDist, 'node_modules'), { recursive: true });
-    cpSync(join(tmp, 'node_modules', '@pi-agent-hub'), dest, { recursive: true, force: true, dereference: true });
-    console.log(`${LOG} 已注入 @pi-agent-hub 同步依赖（sync-daemon + sync-plugin-pi-web 0.1.2）`);
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-}
 
 /** 必须存在的运行期入口（主进程断言 / 冒烟门禁都读它们）。 */
 const REQUIRED_SERVER_ENTRIES = [
@@ -221,7 +200,6 @@ for (const entry of readdirSync(piWebNodeModules, { withFileTypes: true })) {
   });
   copied += 1;
 }
-installSyncPackages(piDistDir);
 console.log(`${LOG} node_modules：复制 ${copied} 个顶层包，跳过 ${skipped} 个（devDependency / 非运行期依赖）`);
 
 /**
